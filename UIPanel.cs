@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using BepInEx.Configuration;
 
-namespace YummiUIHarness
+namespace YummiUIPanel
 {
     /// <summary>
     /// 右下角小猫面板的对外接口。在 Awake 里注册即可，界面会在进入游戏后按需生成。
     /// </summary>
-    public static class UIHarness
+    public static class UIPanel
     {
         public const string Guid = Plugin.Guid;
 
@@ -43,7 +43,7 @@ namespace YummiUIHarness
 
         public static void OpenPage(string key)
         {
-            UI.HarnessWindow.RequestOpen(key);
+            UI.PanelWindow.RequestOpen(key);
         }
 
         public static void TogglePage(string key)
@@ -60,12 +60,12 @@ namespace YummiUIHarness
 
         public static void Close()
         {
-            UI.HarnessWindow.Close();
+            UI.PanelWindow.Close();
         }
 
-        public static bool IsOpen => UI.HarnessWindow.IsOpen;
+        public static bool IsOpen => UI.PanelWindow.IsOpen;
 
-        public static string CurrentPageKey => UI.HarnessWindow.CurrentPageKey;
+        public static string CurrentPageKey => UI.PanelWindow.CurrentPageKey;
 
         internal static Page FindPage(string key)
         {
@@ -83,7 +83,7 @@ namespace YummiUIHarness
     /// <summary>面板中的一页，控件从上到下依次排列。</summary>
     public sealed class Page
     {
-        /// <summary>稳定标识，与 <see cref="UIHarness.OpenPage"/> 一致。</summary>
+        /// <summary>稳定标识，与 <see cref="UIPanel.OpenPage"/> 一致。</summary>
         public string Key { get; }
 
         internal readonly string TitleZh;
@@ -153,7 +153,7 @@ namespace YummiUIHarness
         private Page Add(PageItem item)
         {
             Items.Add(item);
-            UIHarness.Revision++;
+            UIPanel.Revision++;
             return this;
         }
     }

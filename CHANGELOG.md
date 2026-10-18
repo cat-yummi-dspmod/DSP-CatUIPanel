@@ -35,7 +35,7 @@
 ## 0.1.0
 - First version: cat button above the screenshot button, shared panel with one tab per mod.
 - Controls: checkbox (bound to `ConfigEntry<bool>`), button, label.
-- `UIHarness.OpenPage` / `TogglePage` / `Close`; open requests made outside a game wait until a game is entered.
+- `UIPanel.OpenPage` / `TogglePage` / `Close`; open requests made outside a game wait until a game is entered.
 - 首个版本：截图按钮上方的小猫按钮，每个 mod 一个分页的共用面板。
 - 控件：复选框（绑定 `ConfigEntry<bool>`）、按钮、文字。
-- `UIHarness.OpenPage` / `TogglePage` / `Close`；不在游戏中发起的打开请求会等到进入游戏后执行。
+- `UIPanel.OpenPage` / `TogglePage` / `Close`；不在游戏中发起的打开请求会等到进入游戏后执行。

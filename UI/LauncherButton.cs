@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
-namespace YummiUIHarness.UI
+namespace YummiUIPanel.UI
 {
     /// <summary>右下角截图按钮正上方的小猫按钮。克隆截图按钮本身，大小和外观自然与之一致。</summary>
     internal static class LauncherButton

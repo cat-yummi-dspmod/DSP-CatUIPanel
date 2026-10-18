@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
-namespace YummiUIHarness.UI
+namespace YummiUIPanel.UI
 {
     /// <summary>从原版界面克隆控件，保证字体和外观与游戏一致。</summary>
     internal static class Widgets
@@ -182,7 +182,8 @@ namespace YummiUIHarness.UI
             {
                 labelW = 200f;
             }
-            LayoutCheckboxLabel(t, boxW, boxH, labelW);
+            float rowH = LayoutCheckboxLabel(t, boxW, boxH, labelW);
+            row.sizeDelta = new Vector2(boxW, rowH);
         }
 
         private static float GetCheckboxBoxWidth(RectTransform row)
@@ -318,9 +319,28 @@ namespace YummiUIHarness.UI
                 rowH = LayoutCheckboxLabel(t, boxW, boxH, labelW);
             }
 
-            // 根节点只保留方框尺寸，避免 Image 被拉成条；行高由返回值参与外层排版
-            row.sizeDelta = new Vector2(boxW, boxH);
+            // 根节点宽度=方框，高度=整行（供外层排版）；方框 Image 仍固定 boxH，不拉成条
+            row.sizeDelta = new Vector2(boxW, rowH);
             return rowH;
+        }
+
+        /// <summary>纵向堆叠时用的行高（复选框含换行文字）。</summary>
+        public static float MeasureStackRowHeight(Transform row)
+        {
+            if (row is not RectTransform rt)
+            {
+                return 0f;
+            }
+            if (row.name == "yummi-checkbox")
+            {
+                Text t = row.Find("text")?.GetComponent<Text>();
+                if (t != null)
+                {
+                    float boxH = GetCheckboxBoxHeight(row.GetComponent<UIButton>());
+                    return Mathf.Max(boxH, t.preferredHeight + 2f, rt.sizeDelta.y);
+                }
+            }
+            return Mathf.Max(1f, rt.sizeDelta.y);
         }
 
         public static void SafeInvoke(Action action, string what)

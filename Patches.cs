@@ -1,7 +1,7 @@
 using HarmonyLib;
-using YummiUIHarness.UI;
+using YummiUIPanel.UI;
 
-namespace YummiUIHarness
+namespace YummiUIPanel
 {
     internal static class Patches
     {
@@ -9,14 +9,14 @@ namespace YummiUIHarness
         [HarmonyPatch(typeof(UIGame), "_OnUpdate")]
         public static void UIGame_OnUpdate_Prefix()
         {
-            HarnessWindow.OnGameUiUpdate();
+            PanelWindow.OnGameUiUpdate();
         }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(GameMain), nameof(GameMain.End))]
         public static void GameMain_End_Postfix()
         {
-            HarnessWindow.OnGameEnd();
+            PanelWindow.OnGameEnd();
         }
     }
 }

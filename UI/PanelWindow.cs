@@ -4,10 +4,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
-namespace YummiUIHarness.UI
+namespace YummiUIPanel.UI
 {
     /// <summary>面板窗口：外壳取自原版分拣器窗口；内容与分页都画在 panel-bg 内部，并按内容撑开边框。</summary>
-    internal static class HarnessWindow
+    internal static class PanelWindow
     {
         private const float TitleBand = 48f;
         private const float SidePad = 20f;
@@ -111,7 +111,7 @@ namespace YummiUIHarness.UI
 
         private static void Open(string key)
         {
-            if (window == null || builtRevision != UIHarness.Revision)
+            if (window == null || builtRevision != UIPanel.Revision)
             {
                 Rebuild();
             }
@@ -173,7 +173,7 @@ namespace YummiUIHarness.UI
             {
                 Build();
                 windowRect.anchoredPosition = keepPos;
-                builtRevision = UIHarness.Revision;
+                builtRevision = UIPanel.Revision;
             }
             catch (System.Exception e)
             {
@@ -236,7 +236,7 @@ namespace YummiUIHarness.UI
             // contentBottom / tabsBottom 仅作占位；最终尺寸由 RefitFrameToContent 实测
 
             float tabColumnWidth = TabWidth;
-            foreach (Page page in UIHarness.Pages)
+            foreach (Page page in UIPanel.Pages)
             {
                 tabColumnWidth = Mathf.Max(tabColumnWidth, Mathf.Min(MeasureTabWidth(page.Title) + 20f, 140f));
             }
@@ -246,14 +246,14 @@ namespace YummiUIHarness.UI
             float tabsBottom = 0f;
             float contentBottom = 0f;
 
-            if (UIHarness.Pages.Count == 0)
+            if (UIPanel.Pages.Count == 0)
             {
                 Text empty = Widgets.CreateLabel(body, L10n.Pick("还没有 mod 在这里注册页面。", "No mod has registered a page yet."),
                     0, 0, contentWidth + contentLeft);
                 contentBottom = empty.rectTransform.sizeDelta.y;
             }
 
-            foreach (Page page in UIHarness.Pages)
+            foreach (Page page in UIPanel.Pages)
             {
                 var view = new PageView { Page = page };
                 PageView captured = view;
@@ -262,15 +262,18 @@ namespace YummiUIHarness.UI
                 tabsBottom += TabHeight + TabSpacing;
 
                 RectTransform panel = Widgets.CreateContainer("page-" + page.Key, body);
+                panel.offsetMin = new Vector2(contentLeft, 0f);
+                panel.offsetMax = Vector2.zero;
                 view.Panel = panel.gameObject;
-                view.ContentLeft = contentLeft;
+                view.ContentLeft = 0f;
                 float y = 0f;
                 foreach (PageItem item in page.Items)
                 {
-                    float rowH = BuildItem(view, item, panel, contentLeft, y, contentWidth);
+                    float rowH = BuildItem(view, item, panel, 0f, y, contentWidth);
                     y += rowH + RowSpacing;
                 }
                 contentBottom = Mathf.Max(contentBottom, y);
+                view.Tab.transform.SetAsLastSibling();
                 views.Add(view);
             }
 
@@ -337,7 +340,7 @@ namespace YummiUIHarness.UI
                 {
                     continue;
                 }
-                float rowH = Mathf.Max(1f, rt.sizeDelta.y);
+                float rowH = Widgets.MeasureStackRowHeight(child);
                 Widgets.PlaceTopLeft(child, contentLeft, y, panelTransform);
                 y += rowH + RowSpacing;
             }

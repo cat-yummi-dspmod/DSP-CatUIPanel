@@ -3,8 +3,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
-		<RootNamespace>YummiUIHarness</RootNamespace>
-		<AssemblyName>YummiUIHarness</AssemblyName>
+		<RootNamespace>YummiUIPanel</RootNamespace>
+		<AssemblyName>YummiUIPanel</AssemblyName>
 		<TargetFramework>net472</TargetFramework>
 		<Deterministic>true</Deterministic>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>

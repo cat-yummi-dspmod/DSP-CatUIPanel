@@ -1,4 +1,4 @@
-# YummiUIHarness
+# YummiUIPanel
 
 <details>
 <summary>English</summary>
@@ -13,13 +13,13 @@
 ## For mod authors
 
 ```csharp
-[BepInDependency(YummiUIHarness.UIHarness.Guid)]
+[BepInDependency(YummiUIPanel.UIPanel.Guid)]
 public class MyPlugin : BaseUnityPlugin
 {
     private void Awake()
     {
         ConfigEntry<bool> autoOpen = Config.Bind("General", "AutoOpen", true, "...");
-        YummiUIHarness.UIHarness.RegisterPage("我的功能")
+        YummiUIPanel.UIPanel.RegisterPage("我的功能")
             .AddCheckbox(autoOpen, "进入游戏后自动打开")
             .AddButton("执行", () => DoSomething())
             .AddLabel("说明文字");
@@ -27,14 +27,14 @@ public class MyPlugin : BaseUnityPlugin
 }
 
 // whenever your mod needs the user's attention:
-YummiUIHarness.UIHarness.OpenPage("我的功能");
+YummiUIPanel.UIPanel.OpenPage("我的功能");
 ```
 
 - Register in `Awake`; the window is built the first time it is opened in a game.
 - Checkboxes read and write the `ConfigEntry` directly, so the value is saved in your own cfg and stays in sync with other editors.
 - `OpenPage(id)` opens the panel on that tab. Called outside a game (main menu, loading), it waits until a game is entered; leaving a game cancels it.
 - `RegisterPage(key)`：`key` 是唯一标识，也是左侧分页标题；**多个 mod 用同一个 key 会合并到同一页**（后加载的 mod 在下方追加控件）。
-- `TogglePage(key)`, `Close()`, `IsOpen`, `CurrentPageKey`；`ApiVersion` 现为 2（相对 1 去掉中英双参注册）。
+- `TogglePage(key)`, `Close()`, `IsOpen`, `CurrentPageKey`；`UIPanel.ApiVersion` 现为 3。
 
 </details>
 
@@ -55,7 +55,7 @@ YummiUIHarness.UIHarness.OpenPage("我的功能");
 - 在 `Awake` 里注册；窗口在游戏中第一次打开时才生成。
 - 复选框直接读写 `ConfigEntry`，值保存在你自己 mod 的 cfg 里，和其他配置编辑器保持一致。
 - `OpenPage(id)` 打开面板并切到该页。在主菜单、读档中调用时会排队，进入游戏后再打开；离开游戏时取消排队。
-- 另有 `TogglePage(key)`、`Close()`、`IsOpen`、`CurrentPageKey`。`UIHarness.ApiVersion` 现为 2。
+- 另有 `TogglePage(key)`、`Close()`、`IsOpen`、`CurrentPageKey`。`UIPanel.ApiVersion` 现为 3。
 
 ## 中国用户特殊说明
 

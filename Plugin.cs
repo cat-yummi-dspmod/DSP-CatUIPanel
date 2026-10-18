@@ -3,12 +3,12 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 
-namespace YummiUIHarness
+namespace YummiUIPanel
 {
-    [BepInPlugin(Guid, "YummiUIHarness", Version)]
+    [BepInPlugin(Guid, "YummiUIPanel", Version)]
     public class Plugin : BaseUnityPlugin
     {
-        public const string Guid = "com.yummi.dsp.yummiuiharness";
+        public const string Guid = "com.yummi.dsp.yummiuipanel";
         public const string Version = "0.0.0";
 
         private static readonly Harmony harmony = new Harmony(Guid);

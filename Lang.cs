@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace YummiUIHarness
+namespace YummiUIPanel
 {
     /// <summary>按游戏语言在中英文文案间切换（在 UI 生成时解析，勿在 mod Awake 里 Pick 后存死）。</summary>
     public static class L10n

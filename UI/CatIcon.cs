@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace YummiUIHarness.UI
+namespace YummiUIPanel.UI
 {
     /// <summary>运行时画出的白色扁平猫头，和原版按钮上的白色图标同一种画法。</summary>
     internal static class CatIcon

@@ -31,6 +31,25 @@ namespace YummiUIPanel.UI
             public readonly List<(CheckboxItem item, Image check)> Checkboxes = new List<(CheckboxItem, Image)>();
         }
 
+        private struct LangText
+        {
+            public Text Label;
+            public string Zh;
+            public string En;
+        }
+
+        private static readonly List<LangText> langTexts = new List<LangText>();
+
+        private static void BindText(Text label, string zh, string en)
+        {
+            if (label == null)
+            {
+                return;
+            }
+            label.text = L10n.Pick(zh, en);
+            langTexts.Add(new LangText { Label = label, Zh = zh, En = en });
+        }
+
         private static GameObject window;
         private static RectTransform windowRect;
         private static RectTransform bodyHost;
@@ -60,6 +79,27 @@ namespace YummiUIPanel.UI
             if (window != null)
             {
                 window.SetActive(false);
+            }
+        }
+
+        /// <summary>游戏语言已切换。只改已经生成的文案，不重建窗口，也不再读语言。</summary>
+        public static void OnLanguageChanged()
+        {
+            if (langTexts.Count == 0)
+            {
+                return;
+            }
+            for (int i = 0; i < langTexts.Count; i++)
+            {
+                LangText slot = langTexts[i];
+                if (slot.Label != null)
+                {
+                    slot.Label.text = L10n.Pick(slot.Zh, slot.En);
+                }
+            }
+            if (IsOpen)
+            {
+                RefitFrameToContent();
             }
         }
 
@@ -169,6 +209,7 @@ namespace YummiUIPanel.UI
             }
             window = null;
             views.Clear();
+            langTexts.Clear();
             try
             {
                 Build();
@@ -184,6 +225,7 @@ namespace YummiUIPanel.UI
                 }
                 window = null;
                 views.Clear();
+                langTexts.Clear();
             }
         }
 
@@ -224,7 +266,7 @@ namespace YummiUIPanel.UI
             if (title != null)
             {
                 Widgets.StripLocalizers(title.gameObject);
-                title.text = L10n.Pick("悠米面板(F9)", "Yummi Panel (F9)");
+                BindText(title, "悠米面板(F9)", "Yummi Panel (F9)");
             }
             foreach (Button b in panelBg.GetComponentsInChildren<Button>(true))
             {
@@ -248,8 +290,8 @@ namespace YummiUIPanel.UI
 
             if (UIPanel.Pages.Count == 0)
             {
-                Text empty = Widgets.CreateLabel(body, L10n.Pick("还没有 mod 在这里注册页面。", "No mod has registered a page yet."),
-                    0, 0, contentWidth + contentLeft);
+                Text empty = Widgets.CreateLabel(body, "", 0, 0, contentWidth + contentLeft);
+                BindText(empty, "还没有 mod 在这里注册页面。", "No mod has registered a page yet.");
                 contentBottom = empty.rectTransform.sizeDelta.y;
             }
 
@@ -259,11 +301,14 @@ namespace YummiUIPanel.UI
                 PageView captured = view;
                 view.Tab = Widgets.CreateTabButton(body, page.Title, TabLeft, tabsBottom, tabColumnWidth, TabHeight,
                     () => { ShowPage(captured); SyncCheckboxes(); });
+                BindText(view.Tab.transform.Find("Text")?.GetComponent<Text>(), page.TitleZh, page.TitleEn);
                 tabsBottom += TabHeight + TabSpacing;
 
-                RectTransform panel = Widgets.CreateContainer("page-" + page.Key, body);
-                panel.offsetMin = new Vector2(contentLeft, 0f);
-                panel.offsetMax = Vector2.zero;
+                // 顶左锚点，直接放在分页右侧。不用拉伸留白，避免方框仍从 x=0 画到分页上。
+                RectTransform panel = Widgets.PlaceTopLeft(
+                    new GameObject("page-" + page.Key, typeof(RectTransform)).transform,
+                    contentLeft, 0f, body);
+                panel.sizeDelta = new Vector2(contentWidth, 8f);
                 view.Panel = panel.gameObject;
                 view.ContentLeft = 0f;
                 float y = 0f;
@@ -311,11 +356,11 @@ namespace YummiUIPanel.UI
                     Widgets.RefreshLabelHeight(label);
                 }
             }
-            foreach (UIButton cb in body.GetComponentsInChildren<UIButton>(true))
+            foreach (RectTransform rt in body.GetComponentsInChildren<RectTransform>(true))
             {
-                if (cb.gameObject.name == "yummi-checkbox")
+                if (rt.gameObject.name == "yummi-checkbox")
                 {
-                    Widgets.RefreshCheckboxRow(cb);
+                    Widgets.RefreshCheckboxRow(rt);
                 }
             }
         }
@@ -361,10 +406,23 @@ namespace YummiUIPanel.UI
                 {
                     continue;
                 }
-                float right = rt.anchoredPosition.x + rt.sizeDelta.x;
-                float bottom = -rt.anchoredPosition.y + rt.sizeDelta.y;
-                maxX = Mathf.Max(maxX, right);
-                maxY = Mathf.Max(maxY, bottom);
+                OffsetFromBodyTopLeft(body, rt, out float left, out float top);
+                maxX = Mathf.Max(maxX, left + rt.sizeDelta.x);
+                maxY = Mathf.Max(maxY, top + rt.sizeDelta.y);
+            }
+        }
+
+        /// <summary>子控件的 anchoredPosition 相对各自父节点。内容列套在 page 下之后，必须累加到 body 左上角。</summary>
+        private static void OffsetFromBodyTopLeft(RectTransform body, RectTransform rt, out float left, out float top)
+        {
+            left = 0f;
+            top = 0f;
+            RectTransform cur = rt;
+            while (cur != null && cur != body)
+            {
+                left += cur.anchoredPosition.x;
+                top += -cur.anchoredPosition.y;
+                cur = cur.parent as RectTransform;
             }
         }
 
@@ -450,7 +508,8 @@ namespace YummiUIPanel.UI
             {
                 case CheckboxItem cb:
                 {
-                    float rowH = Widgets.CreateCheckbox(parent, cb.Text, x, y, BodyFontSize, contentWidth, out UIButton btn, out Image check);
+                    float rowH = Widgets.CreateCheckbox(parent, "", x, y, BodyFontSize, contentWidth, out UIButton btn, out Image check);
+                    BindText(btn.transform.Find("text")?.GetComponent<Text>(), cb.TextZh, cb.TextEn);
                     btn.onClick += _ => cb.Entry.Value = !cb.Entry.Value;
                     view.Checkboxes.Add((cb, check));
                     return rowH;
@@ -458,11 +517,16 @@ namespace YummiUIPanel.UI
                 case ButtonItem b:
                 {
                     float btnW = b.Width > 0f ? b.Width : contentWidth;
-                    Widgets.CreateButton(parent, b.Text, x, y, btnW, ButtonHeight, ButtonFontSize, b.OnClick);
+                    UIButton btn = Widgets.CreateButton(parent, "", x, y, btnW, ButtonHeight, ButtonFontSize, b.OnClick);
+                    BindText(btn.transform.Find("button-text")?.GetComponent<Text>() ?? btn.GetComponentInChildren<Text>(true), b.TextZh, b.TextEn);
                     return ButtonHeight;
                 }
                 case LabelItem l:
-                    return Widgets.CreateLabel(parent, l.Text, x, y, contentWidth, BodyFontSize).rectTransform.sizeDelta.y;
+                {
+                    Text label = Widgets.CreateLabel(parent, "", x, y, contentWidth, BodyFontSize);
+                    BindText(label, l.TextZh, l.TextEn);
+                    return label.rectTransform.sizeDelta.y;
+                }
                 default:
                     return 0f;
             }

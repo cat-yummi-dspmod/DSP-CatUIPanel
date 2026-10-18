@@ -18,5 +18,25 @@ namespace YummiUIPanel
         {
             PanelWindow.OnGameEnd();
         }
+
+        /// <summary>只在游戏广播换语言时进来一次。Pick 不再读语言。</summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Localization), nameof(Localization.NotifyLanguageChange))]
+        public static void Localization_NotifyLanguageChange_Postfix()
+        {
+            if (!L10n.Refresh())
+            {
+                return;
+            }
+            try
+            {
+                LauncherButton.ApplyLanguage();
+                PanelWindow.OnLanguageChanged();
+            }
+            catch (System.Exception e)
+            {
+                Plugin.Log.LogError("Language refresh failed: " + e);
+            }
+        }
     }
 }

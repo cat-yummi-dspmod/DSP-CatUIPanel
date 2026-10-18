@@ -24,6 +24,7 @@ namespace YummiUIPanel
             LauncherOffsetY = Config.Bind("Launcher", "OffsetY", 4f,
                 "Gap between the cat button and the screenshot button below it. | 小猫按钮与下方截图按钮的间距。");
             harmony.PatchAll(typeof(Patches));
+            L10n.Refresh();
         }
 
         private void OnDestroy()

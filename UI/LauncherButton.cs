@@ -67,12 +67,7 @@ namespace YummiUIPanel.UI
             if (uiButton != null)
             {
                 uiButton.highlighted = false;
-                uiButton.tips.tipTitle = L10n.Pick("悠米面板(F9)", "Yummi Panel (F9)");
-                uiButton.tips.tipText = L10n.Pick("一些mod的面板入口", "Entry to some mod panels");
-                if (uiButton.tips.corner == 0)
-                {
-                    uiButton.tips.corner = 7;
-                }
+                ApplyTips(uiButton);
             }
 
             Image icon = FindIcon(root.transform);
@@ -88,6 +83,29 @@ namespace YummiUIPanel.UI
                 Plugin.Log.LogWarning("Screenshot button has no icon image; the cat button shows without an icon.");
             }
             root.SetActive(photo.gameObject.activeSelf);
+        }
+
+        public static void ApplyLanguage()
+        {
+            if (root == null)
+            {
+                return;
+            }
+            UIButton uiButton = root.GetComponent<UIButton>();
+            if (uiButton != null)
+            {
+                ApplyTips(uiButton);
+            }
+        }
+
+        private static void ApplyTips(UIButton uiButton)
+        {
+            uiButton.tips.tipTitle = L10n.Pick("悠米面板(F9)", "Yummi Panel (F9)");
+            uiButton.tips.tipText = L10n.Pick("一些mod的面板入口", "Entry to some mod panels");
+            if (uiButton.tips.corner == 0)
+            {
+                uiButton.tips.corner = 7;
+            }
         }
 
         private static Image FindIcon(Transform t)

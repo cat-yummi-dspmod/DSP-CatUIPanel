@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+- Left tabs use UXA-style dyson orbit buttons (fixes wide gray/white tab strip).
+- Checkboxes: never stretch root Image to row width (fixes white bars); label wraps beside the box.
+- 左侧分页改为 UXA 轨道按钮样式；复选框不再拉宽方框根节点。
+
 ## 0.1.4
 - Window sizing like UXA: only root `sizeDelta`; `panel-bg`/`shadow` stretch to fill (fixes visible white rim).
 - 窗口尺寸与 UXA 一致：只改根节点，panel-bg 拉伸铺满（去掉白边）。

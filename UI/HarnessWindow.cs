@@ -10,16 +10,15 @@ namespace YummiUIHarness.UI
     {
         private const float TitleBand = 52f;
         private const float SidePad = 20f;
-        private const float TabColumnMin = 128f;
-        private const float TabHeight = 38f;
-        private const float TabSpacing = 6f;
+        private const float TabWidth = 105f;
+        private const float TabHeight = 27f;
+        private const float TabSpacing = 4f;
+        private const float TabLeft = 8f;
         private const float ContentMinWidth = 460f;
         private const float RowSpacing = 12f;
         private const float ButtonHeight = 42f;
         private const float BottomPad = 24f;
         private const int BodyFontSize = 18;
-        private const int TabFontSize = 17;
-
         private sealed class PageView
         {
             public Page Page;
@@ -228,13 +227,13 @@ namespace YummiUIHarness.UI
 
             RectTransform body = Widgets.CreateBodyHost(panelBg, TitleBand + 8f);
 
-            float tabColumnWidth = TabColumnMin;
+            float tabColumnWidth = TabWidth;
             foreach (Page page in UIHarness.Pages)
             {
-                tabColumnWidth = Mathf.Max(tabColumnWidth, MeasureTabWidth(page.Key) + 28f);
+                tabColumnWidth = Mathf.Max(tabColumnWidth, Mathf.Min(MeasureTabWidth(page.Key) + 20f, 140f));
             }
 
-            float contentLeft = tabColumnWidth + SidePad;
+            float contentLeft = TabLeft + tabColumnWidth + SidePad;
             float contentWidth = ContentMinWidth;
             float tabsBottom = 0f;
             float contentBottom = 0f;
@@ -250,8 +249,8 @@ namespace YummiUIHarness.UI
             {
                 var view = new PageView { Page = page };
                 PageView captured = view;
-                view.Tab = Widgets.CreateButton(body, page.Key, 0, tabsBottom, tabColumnWidth, TabHeight,
-                    TabFontSize, () => { ShowPage(captured); SyncCheckboxes(); });
+                view.Tab = Widgets.CreateTabButton(body, page.Key, TabLeft, tabsBottom, tabColumnWidth, TabHeight,
+                    () => { ShowPage(captured); SyncCheckboxes(); });
                 tabsBottom += TabHeight + TabSpacing;
 
                 RectTransform panel = Widgets.CreateContainer("page-" + page.Key, body);
@@ -343,7 +342,7 @@ namespace YummiUIHarness.UI
             temp.gameObject.SetActive(false);
             Widgets.StripLocalizers(temp.gameObject);
             temp.text = text;
-            temp.fontSize = TabFontSize;
+            temp.fontSize = 16;
             float w = temp.preferredWidth;
             Object.Destroy(temp.gameObject);
             return w;

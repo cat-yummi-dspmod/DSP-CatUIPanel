@@ -10,6 +10,9 @@ namespace YummiUIHarness.UI
     {
         public static readonly Color LabelColor = new Color(1f, 1f, 1f, 0.6f);
 
+        private static readonly Color TabNormal = new Color(0.1f, 0.1f, 0.1f, 0.68f);
+        private static readonly Color TabHighlight = new Color(0.9906f, 0.5897f, 0.3691f, 0.4f);
+
         public static RectTransform PlaceTopLeft(Transform t, float left, float top, Transform parent)
         {
             var rt = (RectTransform)t;
@@ -38,7 +41,6 @@ namespace YummiUIHarness.UI
             return rt;
         }
 
-        /// <summary>panel-bg 内标题栏下方的内容区。</summary>
         public static RectTransform CreateBodyHost(Transform panelBg, float topInset)
         {
             var go = new GameObject("yummi-body", typeof(RectTransform));
@@ -75,24 +77,52 @@ namespace YummiUIHarness.UI
             }
         }
 
-        /// <summary>控件在父级坐标系下占用的宽度（左上锚点）。</summary>
-        public static float MeasureWidth(RectTransform rt)
+        /// <summary>左侧分页，样式与 UXA 一致（戴森球编辑器轨道按钮）。</summary>
+        public static UIButton CreateTabButton(Transform parent, string text, float x, float y, float width, float height, Action onClick)
         {
-            if (rt == null)
+            UIDESwarmPanel swarmPanel = UIRoot.instance.uiGame.dysonEditor.controlPanel.hierarchy.swarmPanel;
+            UIButton btn = Object.Instantiate(swarmPanel.orbitButtons[0], parent, false);
+            btn.gameObject.name = "yummi-tab";
+            btn.gameObject.SetActive(true);
+            ResetUIButton(btn);
+            StripLocalizers(btn.gameObject);
+            Image bg = btn.GetComponent<Image>();
+            if (bg != null)
             {
-                return 0f;
+                bg.sprite = swarmPanel.buttonDefaultSprite;
+                bg.enabled = true;
             }
-            float w = rt.sizeDelta.x;
-            foreach (RectTransform child in rt)
+            Transform frame = btn.transform.Find("frame");
+            if (frame != null)
             {
-                if (!child.gameObject.activeSelf)
+                frame.gameObject.SetActive(false);
+            }
+            if (btn.transitions != null && btn.transitions.Length >= 2)
+            {
+                btn.transitions[0].normalColor = TabNormal;
+                btn.transitions[0].highlightColorOverride = TabHighlight;
+                btn.transitions[1].normalColor = new Color(1f, 1f, 1f, 0.8f);
+                btn.transitions[1].highlightColorOverride = new Color(0.2f, 0.2f, 0.2f, 1f);
+            }
+            RectTransform rt = PlaceTopLeft(btn.transform, x, y, parent);
+            rt.sizeDelta = new Vector2(width, height);
+            Transform textTrans = btn.transform.Find("Text");
+            if (textTrans != null)
+            {
+                Text t = textTrans.GetComponent<Text>();
+                if (t != null)
                 {
-                    continue;
+                    t.text = text;
+                    t.fontSize = 16;
+                    t.fontStyle = FontStyle.Normal;
+                    t.horizontalOverflow = HorizontalWrapMode.Wrap;
                 }
-                float right = child.anchoredPosition.x + child.sizeDelta.x * (1f - child.pivot.x);
-                w = Mathf.Max(w, right);
+                Shadow shadow = textTrans.GetComponent<Shadow>() ?? textTrans.gameObject.AddComponent<Shadow>();
+                shadow.effectColor = new Color(0f, 0f, 0f, 0.4f);
+                shadow.effectDistance = new Vector2(1f, -1f);
             }
-            return w;
+            btn.onClick += _ => SafeInvoke(onClick, text);
+            return btn;
         }
 
         public static Text CreateLabel(Transform parent, string text, float x, float y, float width, int fontSize = 18)
@@ -135,6 +165,7 @@ namespace YummiUIHarness.UI
             return btn;
         }
 
+        /// <summary>复选框：只拉文字区域，绝不拉宽根节点 Image（否则会变成白条）。</summary>
         public static float CreateCheckbox(Transform parent, string text, float x, float y, int fontSize, float maxRowWidth, out UIButton btn, out Image check)
         {
             UIButton src = UIRoot.instance.uiGame.buildMenu.uxFacilityCheck;
@@ -144,23 +175,41 @@ namespace YummiUIHarness.UI
             ResetUIButton(btn);
             StripLocalizers(btn.gameObject);
             RectTransform row = PlaceTopLeft(btn.transform, x, y, parent);
-            check = btn.transform.Find("checked")?.GetComponent<Image>();
             float boxW = row.sizeDelta.x;
+            float boxH = row.sizeDelta.y;
+            check = btn.transform.Find("checked")?.GetComponent<Image>();
+            if (check != null)
+            {
+                PlaceTopLeft(check.transform, 0f, 0f, row);
+            }
+
+            Image boxImage = btn.GetComponent<Image>();
             Text t = btn.transform.Find("text")?.GetComponent<Text>();
-            float rowH = row.sizeDelta.y;
+            float rowH = boxH;
             if (t != null)
             {
                 t.text = text;
                 t.fontSize = fontSize;
-                t.alignment = TextAnchor.MiddleLeft;
+                t.alignment = TextAnchor.UpperLeft;
                 t.horizontalOverflow = HorizontalWrapMode.Wrap;
                 t.verticalOverflow = VerticalWrapMode.Overflow;
-                float labelW = Mathf.Max(80f, maxRowWidth - boxW - 8f);
-                t.rectTransform.sizeDelta = new Vector2(labelW, rowH);
-                rowH = Mathf.Max(row.sizeDelta.y, t.preferredHeight + 6f);
-                t.rectTransform.sizeDelta = new Vector2(labelW, rowH);
+                float labelW = Mathf.Max(60f, maxRowWidth - boxW - 6f);
+                RectTransform textRt = t.rectTransform;
+                textRt.anchorMin = new Vector2(0f, 1f);
+                textRt.anchorMax = new Vector2(0f, 1f);
+                textRt.pivot = new Vector2(0f, 1f);
+                textRt.anchoredPosition = new Vector2(boxW + 4f, 0f);
+                textRt.sizeDelta = new Vector2(labelW, boxH);
+                rowH = Mathf.Max(boxH, t.preferredHeight + 4f);
+                textRt.sizeDelta = new Vector2(labelW, rowH);
             }
-            row.sizeDelta = new Vector2(maxRowWidth, rowH);
+
+            // 根节点保持方框原始尺寸，避免 Image 被拉成横条
+            row.sizeDelta = new Vector2(boxW, rowH);
+            if (boxImage != null)
+            {
+                boxImage.type = Image.Type.Simple;
+            }
             return rowH;
         }
 

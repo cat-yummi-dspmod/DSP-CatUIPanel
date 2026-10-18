@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,27 +9,32 @@ namespace YummiUIHarness.UI
     /// <summary>面板窗口：外壳取自原版分拣器窗口；内容与分页都画在 panel-bg 内部，并按内容撑开边框。</summary>
     internal static class HarnessWindow
     {
-        private const float TitleBand = 52f;
+        private const float TitleBand = 48f;
         private const float SidePad = 20f;
+        private const float OuterMargin = 30f;
         private const float TabWidth = 105f;
         private const float TabHeight = 27f;
         private const float TabSpacing = 4f;
         private const float TabLeft = 8f;
         private const float ContentMinWidth = 460f;
         private const float RowSpacing = 12f;
-        private const float ButtonHeight = 42f;
+        private const float ButtonHeight = 30f;
         private const float BottomPad = 24f;
-        private const int BodyFontSize = 18;
+        private const int BodyFontSize = 15;
+        private const int ButtonFontSize = 14;
         private sealed class PageView
         {
             public Page Page;
             public UIButton Tab;
             public GameObject Panel;
+            public float ContentLeft;
             public readonly List<(CheckboxItem item, Image check)> Checkboxes = new List<(CheckboxItem, Image)>();
         }
 
         private static GameObject window;
         private static RectTransform windowRect;
+        private static RectTransform bodyHost;
+        private static Transform panelBgTransform;
         private static readonly List<PageView> views = new List<PageView>();
         private static int builtRevision = -1;
         private static string pendingPage;
@@ -121,6 +127,7 @@ namespace YummiUIHarness.UI
             ShowPage(view);
             window.SetActive(true);
             window.transform.SetAsLastSibling();
+            RefitFrameToContent();
             SyncCheckboxes();
         }
 
@@ -217,7 +224,7 @@ namespace YummiUIHarness.UI
             if (title != null)
             {
                 Widgets.StripLocalizers(title.gameObject);
-                title.text = Lang.Pick("Yummi 面板", "Yummi Panel");
+                title.text = L10n.Pick("悠米面板(F9)", "Yummi Panel (F9)");
             }
             foreach (Button b in panelBg.GetComponentsInChildren<Button>(true))
             {
@@ -226,11 +233,12 @@ namespace YummiUIHarness.UI
             }
 
             RectTransform body = Widgets.CreateBodyHost(panelBg, TitleBand + 8f);
+            // contentBottom / tabsBottom 仅作占位；最终尺寸由 RefitFrameToContent 实测
 
             float tabColumnWidth = TabWidth;
             foreach (Page page in UIHarness.Pages)
             {
-                tabColumnWidth = Mathf.Max(tabColumnWidth, Mathf.Min(MeasureTabWidth(page.Key) + 20f, 140f));
+                tabColumnWidth = Mathf.Max(tabColumnWidth, Mathf.Min(MeasureTabWidth(page.Title) + 20f, 140f));
             }
 
             float contentLeft = TabLeft + tabColumnWidth + SidePad;
@@ -240,7 +248,7 @@ namespace YummiUIHarness.UI
 
             if (UIHarness.Pages.Count == 0)
             {
-                Text empty = Widgets.CreateLabel(body, Lang.Pick("还没有 mod 在这里注册页面。", "No mod has registered a page yet."),
+                Text empty = Widgets.CreateLabel(body, L10n.Pick("还没有 mod 在这里注册页面。", "No mod has registered a page yet."),
                     0, 0, contentWidth + contentLeft);
                 contentBottom = empty.rectTransform.sizeDelta.y;
             }
@@ -249,12 +257,13 @@ namespace YummiUIHarness.UI
             {
                 var view = new PageView { Page = page };
                 PageView captured = view;
-                view.Tab = Widgets.CreateTabButton(body, page.Key, TabLeft, tabsBottom, tabColumnWidth, TabHeight,
+                view.Tab = Widgets.CreateTabButton(body, page.Title, TabLeft, tabsBottom, tabColumnWidth, TabHeight,
                     () => { ShowPage(captured); SyncCheckboxes(); });
                 tabsBottom += TabHeight + TabSpacing;
 
                 RectTransform panel = Widgets.CreateContainer("page-" + page.Key, body);
                 view.Panel = panel.gameObject;
+                view.ContentLeft = contentLeft;
                 float y = 0f;
                 foreach (PageItem item in page.Items)
                 {
@@ -265,11 +274,95 @@ namespace YummiUIHarness.UI
                 views.Add(view);
             }
 
-            float innerW = SidePad + contentLeft + contentWidth + SidePad;
-            float innerH = Mathf.Max(tabsBottom, contentBottom) + BottomPad;
-            float frameW = innerW;
-            float frameH = TitleBand + 8f + innerH + SidePad;
-            ApplyFrameSize(windowRect, panelBg, window.transform.Find("shadow"), frameW, frameH);
+            bodyHost = body;
+            panelBgTransform = panelBg;
+            RefitFrameToContent();
+        }
+
+        /// <summary>按实际控件边界撑开窗口（与 UXA AutoFitWindowSize 思路一致）。</summary>
+        private static void RefitFrameToContent()
+        {
+            if (windowRect == null || bodyHost == null || panelBgTransform == null)
+            {
+                return;
+            }
+            RefreshDynamicHeights(bodyHost);
+            foreach (PageView v in views)
+            {
+                RelayoutPageStack((RectTransform)v.Panel.transform, v.ContentLeft);
+            }
+            AccumulateWidgetExtents(bodyHost, out float maxX, out float maxY);
+            float frameW = Widgets.SidePadBody + maxX + OuterMargin;
+            float topInset = TitleBand + 8f;
+            float frameH = topInset + maxY + Widgets.SidePadBody + OuterMargin;
+            ApplyFrameSize(windowRect, panelBgTransform, window.transform.Find("shadow"), frameW, frameH);
+        }
+
+        private static void RefreshDynamicHeights(RectTransform body)
+        {
+            Canvas.ForceUpdateCanvases();
+            foreach (Text label in body.GetComponentsInChildren<Text>(true))
+            {
+                if (label.gameObject.name == "yummi-label")
+                {
+                    Widgets.RefreshLabelHeight(label);
+                }
+            }
+            foreach (UIButton cb in body.GetComponentsInChildren<UIButton>(true))
+            {
+                if (cb.gameObject.name == "yummi-checkbox")
+                {
+                    Widgets.RefreshCheckboxRow(cb);
+                }
+            }
+        }
+
+        /// <summary>换行/复选框高度变化后，按 sibling 顺序重新累加 y，避免行与行重叠。</summary>
+        private static void RelayoutPageStack(RectTransform panel, float contentLeft)
+        {
+            if (panel == null)
+            {
+                return;
+            }
+            float y = 0f;
+            Transform panelTransform = panel.transform;
+            for (int i = 0; i < panelTransform.childCount; i++)
+            {
+                Transform child = panelTransform.GetChild(i);
+                if (!child.name.StartsWith("yummi-", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                if (child is not RectTransform rt)
+                {
+                    continue;
+                }
+                float rowH = Mathf.Max(1f, rt.sizeDelta.y);
+                Widgets.PlaceTopLeft(child, contentLeft, y, panelTransform);
+                y += rowH + RowSpacing;
+            }
+        }
+
+        private static void AccumulateWidgetExtents(RectTransform body, out float maxX, out float maxY)
+        {
+            maxX = 0f;
+            maxY = 0f;
+            foreach (RectTransform rt in body.GetComponentsInChildren<RectTransform>(true))
+            {
+                if (rt == body)
+                {
+                    continue;
+                }
+                string n = rt.gameObject.name;
+                if (n != "yummi-checkbox" && n != "yummi-button" && n != "yummi-label" && n != "yummi-tab")
+                {
+                    continue;
+                }
+                float right = rt.anchoredPosition.x + rt.sizeDelta.x;
+                float bottom = -rt.anchoredPosition.y + rt.sizeDelta.y;
+                maxX = Mathf.Max(maxX, right);
+                maxY = Mathf.Max(maxY, bottom);
+            }
         }
 
         /// <summary>若 panel-bg 在 windowTrans 等中间层里，提到根下，避免只改根 sizeDelta 边框不变。</summary>
@@ -360,8 +453,11 @@ namespace YummiUIHarness.UI
                     return rowH;
                 }
                 case ButtonItem b:
-                    Widgets.CreateButton(parent, b.Text, x, y, contentWidth, ButtonHeight, BodyFontSize, b.OnClick);
+                {
+                    float btnW = b.Width > 0f ? b.Width : contentWidth;
+                    Widgets.CreateButton(parent, b.Text, x, y, btnW, ButtonHeight, ButtonFontSize, b.OnClick);
                     return ButtonHeight;
+                }
                 case LabelItem l:
                     return Widgets.CreateLabel(parent, l.Text, x, y, contentWidth, BodyFontSize).rectTransform.sizeDelta.y;
                 default:

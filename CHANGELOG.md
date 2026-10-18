@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.6
+
+- Refit window size from measured widget bounds after `Canvas.ForceUpdateCanvases()` (fixes content clipped past frame).
+- Refresh wrapped label/checkbox heights before measuring; refit again on each open.
+
 ## 0.1.5
 - Left tabs use UXA-style dyson orbit buttons (fixes wide gray/white tab strip).
 - Checkboxes: never stretch root Image to row width (fixes white bars); label wraps beside the box.

@@ -9,7 +9,7 @@ namespace YummiUIHarness
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "com.yummi.dsp.yummiuiharness";
-        public const string Version = "0.1.5";
+        public const string Version = "0.0.0";
 
         private static readonly Harmony harmony = new Harmony(Guid);
         internal static ManualLogSource Log;

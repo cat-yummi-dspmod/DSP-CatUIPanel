@@ -1,7 +1,7 @@
 {
   "name": "YummiUIHarness",
   "description": "A cat button above the screenshot button opens one shared settings panel for Yummi mods. | 截图按钮上方的小猫按钮，打开 Yummi 系列 mod 共用的设置面板。",
-  "version_number": "0.1.5",
+  "version_number": "0.0.0",
   "website_url": "https://github.com/cat-yummi-dspmod/DSP-YummiUIHarness",
   "dependencies": [
     "xiaoye97-BepInEx-5.4.17"

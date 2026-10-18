@@ -67,8 +67,8 @@ namespace YummiUIHarness.UI
             if (uiButton != null)
             {
                 uiButton.highlighted = false;
-                uiButton.tips.tipTitle = Lang.Pick("Yummi 面板", "Yummi Panel");
-                uiButton.tips.tipText = Lang.Pick("各个 Yummi mod 的设置与功能", "Settings and tools of Yummi mods");
+                uiButton.tips.tipTitle = L10n.Pick("悠米面板(F9)", "Yummi Panel (F9)");
+                uiButton.tips.tipText = L10n.Pick("一些mod的面板入口", "Entry to some mod panels");
                 if (uiButton.tips.corner == 0)
                 {
                     uiButton.tips.corner = 7;

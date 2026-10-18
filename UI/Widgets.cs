@@ -54,7 +54,7 @@ namespace YummiUIHarness.UI
             return rt;
         }
 
-        private const float SidePadBody = 12f;
+        internal const float SidePadBody = 12f;
 
         public static void StripLocalizers(GameObject go)
         {
@@ -145,6 +145,130 @@ namespace YummiUIHarness.UI
             return label;
         }
 
+        /// <summary>布局完成后按实际换行高度更新标签（避免面板按偏小的 preferredHeight 裁切）。</summary>
+        public static void RefreshLabelHeight(Text label)
+        {
+            if (label == null)
+            {
+                return;
+            }
+            Canvas.ForceUpdateCanvases();
+            RectTransform rt = label.rectTransform;
+            float minH = label.fontSize + 8f;
+            rt.sizeDelta = new Vector2(rt.sizeDelta.x, Mathf.Max(minH, label.preferredHeight + 8f));
+        }
+
+        /// <summary>同步复选框行高与右侧换行文字。</summary>
+        public static void RefreshCheckboxRow(UIButton btn)
+        {
+            if (btn == null)
+            {
+                return;
+            }
+            RectTransform row = btn.transform as RectTransform;
+            if (row == null)
+            {
+                return;
+            }
+            float boxW = GetCheckboxBoxWidth(row);
+            float boxH = GetCheckboxBoxHeight(btn);
+            Text t = btn.transform.Find("text")?.GetComponent<Text>();
+            if (t == null)
+            {
+                return;
+            }
+            float labelW = t.rectTransform.sizeDelta.x;
+            if (labelW <= 0f)
+            {
+                labelW = 200f;
+            }
+            LayoutCheckboxLabel(t, boxW, boxH, labelW);
+        }
+
+        private static float GetCheckboxBoxWidth(RectTransform row)
+        {
+            RectTransform checkedRt = row.Find("checked") as RectTransform;
+            if (checkedRt != null && checkedRt.sizeDelta.x > 0f)
+            {
+                return checkedRt.sizeDelta.x;
+            }
+            Image boxImage = row.GetComponent<Image>();
+            if (boxImage != null && boxImage.rectTransform.sizeDelta.x > 0f)
+            {
+                return boxImage.rectTransform.sizeDelta.x;
+            }
+            return row.sizeDelta.x;
+        }
+
+        private static float GetCheckboxBoxHeight(UIButton btn)
+        {
+            RectTransform checkedRt = btn.transform.Find("checked") as RectTransform;
+            if (checkedRt != null && checkedRt.sizeDelta.y > 0f)
+            {
+                return checkedRt.sizeDelta.y;
+            }
+            Image boxImage = btn.GetComponent<Image>();
+            if (boxImage != null && boxImage.rectTransform.sizeDelta.y > 0f)
+            {
+                return boxImage.rectTransform.sizeDelta.y;
+            }
+            return btn.transform is RectTransform row ? row.sizeDelta.y : 24f;
+        }
+
+        private static void PinCheckboxBoxImage(Image boxImage, float boxW, float boxH)
+        {
+            if (boxImage == null)
+            {
+                return;
+            }
+            boxImage.type = Image.Type.Simple;
+            RectTransform rt = boxImage.rectTransform;
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = new Vector2(boxW, boxH);
+        }
+
+        private static void PinCheckboxMark(Image check, float boxW, float boxH)
+        {
+            if (check == null)
+            {
+                return;
+            }
+            RectTransform rt = check.rectTransform;
+            Vector2 size = rt.sizeDelta;
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2(boxW * 0.5f, -boxH * 0.5f);
+            rt.sizeDelta = size;
+        }
+
+        /// <returns>整行占位高度（用于纵向排版）。</returns>
+        private static float LayoutCheckboxLabel(Text t, float boxW, float boxH, float labelW)
+        {
+            Canvas.ForceUpdateCanvases();
+            RectTransform textRt = t.rectTransform;
+            textRt.anchorMin = new Vector2(0f, 1f);
+            textRt.anchorMax = new Vector2(0f, 1f);
+            textRt.pivot = new Vector2(0f, 1f);
+            textRt.anchoredPosition = new Vector2(boxW + 4f, 0f);
+            float prefH = t.preferredHeight;
+            bool singleLine = prefH <= boxH + 1f;
+            if (singleLine)
+            {
+                t.alignment = TextAnchor.MiddleLeft;
+                textRt.sizeDelta = new Vector2(labelW, boxH);
+            }
+            else
+            {
+                t.alignment = TextAnchor.UpperLeft;
+                textRt.sizeDelta = new Vector2(labelW, prefH);
+            }
+            return Mathf.Max(boxH, prefH + 2f);
+        }
+
         public static UIButton CreateButton(Transform parent, string text, float x, float y, float width, float height, int fontSize, Action onClick)
         {
             UIButton src = UIRoot.instance.uiGame.statWindow.performancePanelUI.cpuActiveButton;
@@ -178,38 +302,24 @@ namespace YummiUIHarness.UI
             float boxW = row.sizeDelta.x;
             float boxH = row.sizeDelta.y;
             check = btn.transform.Find("checked")?.GetComponent<Image>();
-            if (check != null)
-            {
-                PlaceTopLeft(check.transform, 0f, 0f, row);
-            }
-
             Image boxImage = btn.GetComponent<Image>();
+            PinCheckboxBoxImage(boxImage, boxW, boxH);
+            PinCheckboxMark(check, boxW, boxH);
+
             Text t = btn.transform.Find("text")?.GetComponent<Text>();
             float rowH = boxH;
             if (t != null)
             {
                 t.text = text;
                 t.fontSize = fontSize;
-                t.alignment = TextAnchor.UpperLeft;
                 t.horizontalOverflow = HorizontalWrapMode.Wrap;
                 t.verticalOverflow = VerticalWrapMode.Overflow;
                 float labelW = Mathf.Max(60f, maxRowWidth - boxW - 6f);
-                RectTransform textRt = t.rectTransform;
-                textRt.anchorMin = new Vector2(0f, 1f);
-                textRt.anchorMax = new Vector2(0f, 1f);
-                textRt.pivot = new Vector2(0f, 1f);
-                textRt.anchoredPosition = new Vector2(boxW + 4f, 0f);
-                textRt.sizeDelta = new Vector2(labelW, boxH);
-                rowH = Mathf.Max(boxH, t.preferredHeight + 4f);
-                textRt.sizeDelta = new Vector2(labelW, rowH);
+                rowH = LayoutCheckboxLabel(t, boxW, boxH, labelW);
             }
 
-            // 根节点保持方框原始尺寸，避免 Image 被拉成横条
-            row.sizeDelta = new Vector2(boxW, rowH);
-            if (boxImage != null)
-            {
-                boxImage.type = Image.Type.Simple;
-            }
+            // 根节点只保留方框尺寸，避免 Image 被拉成条；行高由返回值参与外层排版
+            row.sizeDelta = new Vector2(boxW, boxH);
             return rowH;
         }
 

@@ -2,22 +2,26 @@ using System.Globalization;
 
 namespace YummiUIHarness
 {
-    internal static class Lang
+    /// <summary>按游戏语言在中英文文案间切换（在 UI 生成时解析，勿在 mod Awake 里 Pick 后存死）。</summary>
+    public static class L10n
     {
         public static bool IsChinese
         {
             get
             {
-                int lcid;
                 try
                 {
-                    lcid = Localization.Loaded ? Localization.CurrentLanguageLCID : CultureInfo.CurrentUICulture.LCID;
+                    if (Localization.Loaded)
+                    {
+                        return Localization.isZHCN;
+                    }
+                    return DSPGame.globalOption.languageLCID == 2052;
                 }
                 catch
                 {
-                    lcid = CultureInfo.CurrentUICulture.LCID;
+                    // ignored
                 }
-                return (lcid & 0x3FF) == 0x04;
+                return (CultureInfo.CurrentUICulture.LCID & 0x3FF) == 0x04;
             }
         }
 

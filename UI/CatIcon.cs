@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace YummiUIPanel.UI
+namespace CatUIPanel.UI
 {
     /// <summary>运行时画出的白色扁平猫头，和原版按钮上的白色图标同一种画法。</summary>
     internal static class CatIcon
@@ -17,7 +17,7 @@ namespace YummiUIPanel.UI
             }
             var tex = new Texture2D(Size, Size, TextureFormat.RGBA32, false)
             {
-                name = "yummi-cat-icon",
+                name = "cat-cat-icon",
                 filterMode = FilterMode.Bilinear,
                 wrapMode = TextureWrapMode.Clamp
             };
@@ -46,7 +46,7 @@ namespace YummiUIPanel.UI
             tex.SetPixels32(pixels);
             tex.Apply(false, true);
             sprite = Sprite.Create(tex, new Rect(0, 0, Size, Size), new Vector2(0.5f, 0.5f), 100f);
-            sprite.name = "yummi-cat-icon";
+            sprite.name = "cat-cat-icon";
             return sprite;
         }
 

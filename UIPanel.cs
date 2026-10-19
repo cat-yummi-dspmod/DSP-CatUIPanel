@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using BepInEx.Configuration;
 
-namespace YummiUIPanel
+namespace CatUIPanel
 {
     /// <summary>
     /// 右下角小猫面板的对外接口。在 Awake 里注册即可，界面会在进入游戏后按需生成。

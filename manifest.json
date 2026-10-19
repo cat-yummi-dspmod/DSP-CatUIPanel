@@ -1,8 +1,8 @@
 {
-  "name": "YummiUIPanel",
-  "description": "A cat button above the screenshot button opens one shared settings panel for Yummi mods. | 截图按钮上方的小猫按钮，打开 Yummi 系列 mod 共用的设置面板。",
-  "version_number": "0.0.0",
-  "website_url": "https://github.com/cat-yummi-dspmod/DSP-YummiUIPanel",
+  "name": "CatUIPanel",
+  "description": "A lightweight UI framework that gives different mods the same in-game entry point. | 轻量级 UI 框架，为不同 mod 提供统一的游戏内入口。",
+  "version_number": "0.0.1",
+  "website_url": "https://github.com/cat-yummi-dspmod/DSP-CatUIPanel",
   "dependencies": [
     "xiaoye97-BepInEx-5.4.17"
   ]

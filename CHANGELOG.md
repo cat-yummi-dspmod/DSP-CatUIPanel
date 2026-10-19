@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.1 - 2026-10-19
+
+- Renamed from **YummiUIPanel** to **CatUIPanel**; in-game title **猫猫面板** / **Cat Panel** (was 悠米 / Yummi). Thunderstore `DSP-CatUIPanel`, dependency `cat_yummi-CatUIPanel-0.0.1`.
+- Plugin GUID `com.cat.dsp.catuipanel`. Renamed due to feedback: mod names no longer include the author name.
+
 ## 0.1.6
 
 - Refit window size from measured widget bounds after `Canvas.ForceUpdateCanvases()` (fixes content clipped past frame).

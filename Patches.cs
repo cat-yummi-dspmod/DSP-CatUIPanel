@@ -1,7 +1,7 @@
 using HarmonyLib;
-using YummiUIPanel.UI;
+using CatUIPanel.UI;
 
-namespace YummiUIPanel
+namespace CatUIPanel
 {
     internal static class Patches
     {

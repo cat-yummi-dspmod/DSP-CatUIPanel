@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
-namespace YummiUIPanel.UI
+namespace CatUIPanel.UI
 {
     /// <summary>面板窗口：外壳取自原版分拣器窗口；内容与分页都画在 panel-bg 内部，并按内容撑开边框。</summary>
     internal static class PanelWindow
@@ -97,9 +97,39 @@ namespace YummiUIPanel.UI
                     slot.Label.text = L10n.Pick(slot.Zh, slot.En);
                 }
             }
+            FitTabColumn();
             if (IsOpen)
             {
                 RefitFrameToContent();
+            }
+        }
+
+        /// <summary>分页按当前文案的单行宽度拉开，避免英文标题被折成两行。</summary>
+        private static void FitTabColumn()
+        {
+            if (views.Count == 0)
+            {
+                return;
+            }
+            float column = TabWidth;
+            foreach (PageView view in views)
+            {
+                string title = view.Page != null ? L10n.Pick(view.Page.TitleZh, view.Page.TitleEn) : "";
+                column = Mathf.Max(column, MeasureTabWidth(title) + 24f);
+            }
+            float contentLeft = TabLeft + column + SidePad;
+            foreach (PageView view in views)
+            {
+                if (view.Tab != null && view.Tab.transform is RectTransform tabRt)
+                {
+                    tabRt.sizeDelta = new Vector2(column, TabHeight);
+                }
+                if (view.Panel != null && view.Panel.transform is RectTransform panelRt)
+                {
+                    Vector2 pos = panelRt.anchoredPosition;
+                    pos.x = contentLeft;
+                    panelRt.anchoredPosition = pos;
+                }
             }
         }
 
@@ -232,7 +262,7 @@ namespace YummiUIPanel.UI
         private static void Build()
         {
             GameObject template = UIRoot.instance.uiGame.inserterWindow.gameObject;
-            var holder = new GameObject("yummi-holder");
+            var holder = new GameObject("cat-holder");
             holder.SetActive(false);
             window = Object.Instantiate(template, holder.transform, false);
             Object.DestroyImmediate(window.GetComponent<UIInserterWindow>());
@@ -246,7 +276,7 @@ namespace YummiUIPanel.UI
                     Object.DestroyImmediate(child);
                 }
             }
-            window.name = "yummi-ui-harness-window";
+            window.name = "cat-ui-harness-window";
             window.transform.SetParent(template.transform.parent, false);
             Object.Destroy(holder);
             window.SetActive(false);
@@ -266,7 +296,7 @@ namespace YummiUIPanel.UI
             if (title != null)
             {
                 Widgets.StripLocalizers(title.gameObject);
-                BindText(title, "悠米面板(F9)", "Yummi Panel (F9)");
+                BindText(title, "猫猫面板(F9)", "Cat Panel (F9)");
             }
             foreach (Button b in panelBg.GetComponentsInChildren<Button>(true))
             {
@@ -280,7 +310,7 @@ namespace YummiUIPanel.UI
             float tabColumnWidth = TabWidth;
             foreach (Page page in UIPanel.Pages)
             {
-                tabColumnWidth = Mathf.Max(tabColumnWidth, Mathf.Min(MeasureTabWidth(page.Title) + 20f, 140f));
+                tabColumnWidth = Mathf.Max(tabColumnWidth, MeasureTabWidth(page.Title) + 24f);
             }
 
             float contentLeft = TabLeft + tabColumnWidth + SidePad;
@@ -351,14 +381,14 @@ namespace YummiUIPanel.UI
             Canvas.ForceUpdateCanvases();
             foreach (Text label in body.GetComponentsInChildren<Text>(true))
             {
-                if (label.gameObject.name == "yummi-label")
+                if (label.gameObject.name == "cat-label")
                 {
                     Widgets.RefreshLabelHeight(label);
                 }
             }
             foreach (RectTransform rt in body.GetComponentsInChildren<RectTransform>(true))
             {
-                if (rt.gameObject.name == "yummi-checkbox")
+                if (rt.gameObject.name == "cat-checkbox")
                 {
                     Widgets.RefreshCheckboxRow(rt);
                 }
@@ -377,7 +407,7 @@ namespace YummiUIPanel.UI
             for (int i = 0; i < panelTransform.childCount; i++)
             {
                 Transform child = panelTransform.GetChild(i);
-                if (!child.name.StartsWith("yummi-", StringComparison.Ordinal))
+                if (!child.name.StartsWith("cat-", StringComparison.Ordinal))
                 {
                     continue;
                 }
@@ -402,7 +432,7 @@ namespace YummiUIPanel.UI
                     continue;
                 }
                 string n = rt.gameObject.name;
-                if (n != "yummi-checkbox" && n != "yummi-button" && n != "yummi-label" && n != "yummi-tab")
+                if (n != "cat-checkbox" && n != "cat-button" && n != "cat-label" && n != "cat-tab")
                 {
                     continue;
                 }
@@ -497,6 +527,7 @@ namespace YummiUIPanel.UI
             Widgets.StripLocalizers(temp.gameObject);
             temp.text = text;
             temp.fontSize = 16;
+            temp.horizontalOverflow = HorizontalWrapMode.Overflow;
             float w = temp.preferredWidth;
             Object.Destroy(temp.gameObject);
             return w;

@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
-namespace YummiUIPanel.UI
+namespace CatUIPanel.UI
 {
     /// <summary>从原版界面克隆控件，保证字体和外观与游戏一致。</summary>
     internal static class Widgets
@@ -43,7 +43,7 @@ namespace YummiUIPanel.UI
 
         public static RectTransform CreateBodyHost(Transform panelBg, float topInset)
         {
-            var go = new GameObject("yummi-body", typeof(RectTransform));
+            var go = new GameObject("cat-body", typeof(RectTransform));
             var rt = (RectTransform)go.transform;
             rt.SetParent(panelBg, false);
             rt.anchorMin = Vector2.zero;
@@ -82,7 +82,7 @@ namespace YummiUIPanel.UI
         {
             UIDESwarmPanel swarmPanel = UIRoot.instance.uiGame.dysonEditor.controlPanel.hierarchy.swarmPanel;
             UIButton btn = Object.Instantiate(swarmPanel.orbitButtons[0], parent, false);
-            btn.gameObject.name = "yummi-tab";
+            btn.gameObject.name = "cat-tab";
             btn.gameObject.SetActive(true);
             ResetUIButton(btn);
             StripLocalizers(btn.gameObject);
@@ -115,7 +115,15 @@ namespace YummiUIPanel.UI
                     t.text = text;
                     t.fontSize = 16;
                     t.fontStyle = FontStyle.Normal;
-                    t.horizontalOverflow = HorizontalWrapMode.Wrap;
+                    t.alignment = TextAnchor.MiddleCenter;
+                    t.horizontalOverflow = HorizontalWrapMode.Overflow;
+                    t.verticalOverflow = VerticalWrapMode.Truncate;
+                    RectTransform textRt = t.rectTransform;
+                    textRt.anchorMin = Vector2.zero;
+                    textRt.anchorMax = Vector2.one;
+                    textRt.pivot = new Vector2(0.5f, 0.5f);
+                    textRt.offsetMin = new Vector2(10f, 0f);
+                    textRt.offsetMax = new Vector2(-10f, 0f);
                 }
                 Shadow shadow = textTrans.GetComponent<Shadow>() ?? textTrans.gameObject.AddComponent<Shadow>();
                 shadow.effectColor = new Color(0f, 0f, 0f, 0.4f);
@@ -129,7 +137,7 @@ namespace YummiUIPanel.UI
         {
             Text src = UIRoot.instance.uiGame.assemblerWindow.stateText;
             Text label = Object.Instantiate(src, parent, false);
-            label.gameObject.name = "yummi-label";
+            label.gameObject.name = "cat-label";
             label.gameObject.SetActive(true);
             StripLocalizers(label.gameObject);
             label.text = text;
@@ -161,11 +169,11 @@ namespace YummiUIPanel.UI
         /// <summary>同步复选框行高与右侧换行文字。方框尺寸保持原版，只改外层行。</summary>
         public static void RefreshCheckboxRow(RectTransform host)
         {
-            if (host == null || host.name != "yummi-checkbox")
+            if (host == null || host.name != "cat-checkbox")
             {
                 return;
             }
-            RectTransform box = host.Find("yummi-checkbox-box") as RectTransform;
+            RectTransform box = host.Find("cat-checkbox-box") as RectTransform;
             Text t = host.GetComponentInChildren<Text>(true);
             if (box == null || t == null || t.gameObject.name != "text")
             {
@@ -214,7 +222,7 @@ namespace YummiUIPanel.UI
         {
             UIButton src = UIRoot.instance.uiGame.statWindow.performancePanelUI.cpuActiveButton;
             UIButton btn = Object.Instantiate(src, parent, false);
-            btn.gameObject.name = "yummi-button";
+            btn.gameObject.name = "cat-button";
             btn.gameObject.SetActive(true);
             ResetUIButton(btn);
             StripLocalizers(btn.gameObject);
@@ -236,12 +244,12 @@ namespace YummiUIPanel.UI
         /// </summary>
         public static float CreateCheckbox(Transform parent, string text, float x, float y, int fontSize, float maxRowWidth, out UIButton btn, out Image check)
         {
-            var hostGo = new GameObject("yummi-checkbox", typeof(RectTransform));
+            var hostGo = new GameObject("cat-checkbox", typeof(RectTransform));
             RectTransform host = PlaceTopLeft(hostGo.transform, x, y, parent);
 
             UIButton src = UIRoot.instance.uiGame.buildMenu.uxFacilityCheck;
             btn = Object.Instantiate(src, host, false);
-            btn.gameObject.name = "yummi-checkbox-box";
+            btn.gameObject.name = "cat-checkbox-box";
             btn.gameObject.SetActive(true);
             ResetUIButton(btn);
             StripLocalizers(btn.gameObject);
@@ -275,10 +283,10 @@ namespace YummiUIPanel.UI
             {
                 return 0f;
             }
-            if (row.name == "yummi-checkbox")
+            if (row.name == "cat-checkbox")
             {
                 Text t = row.GetComponentInChildren<Text>(true);
-                RectTransform box = row.Find("yummi-checkbox-box") as RectTransform;
+                RectTransform box = row.Find("cat-checkbox-box") as RectTransform;
                 float boxH = box != null ? box.sizeDelta.y : 0f;
                 if (t != null)
                 {

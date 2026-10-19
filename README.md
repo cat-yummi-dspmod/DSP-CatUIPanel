@@ -1,25 +1,34 @@
-# YummiUIPanel
+# CatUIPanel
+
+Thunderstore 本地上传 zip（可点击）：[THUNDERSTORE_ZIPS.md](THUNDERSTORE_ZIPS.md)
 
 <details>
 <summary>English</summary>
 
 **A shared in-game panel for Dyson Sphere Program mods.** A white cat button sits right above the screenshot button in the bottom-right corner; clicking it opens one window where every registered mod has its own tab.
 
+This mod gives mod authors a shared, lightweight panel with no other gameplay features bundled in.
+Unfortunately, the panel is still an alpha prototype for now.
+
+![Cat launcher button](screenshots/launcher.png)
+
+![Cat Panel window](screenshots/panel.png)
+
 ## For players
 
-- Click the cat button (or the window's close button / Esc) to open and close the panel.
+- Press **F9** or click the cat button (or the window's close button / Esc) to open and close the panel.
 - If the cat button overlaps something, move it with `Launcher/OffsetX` and `Launcher/OffsetY` in the config file.
 
 ## For mod authors
 
 ```csharp
-[BepInDependency(YummiUIPanel.UIPanel.Guid)]
+[BepInDependency(CatUIPanel.UIPanel.Guid)]
 public class MyPlugin : BaseUnityPlugin
 {
     private void Awake()
     {
         ConfigEntry<bool> autoOpen = Config.Bind("General", "AutoOpen", true, "...");
-        YummiUIPanel.UIPanel.RegisterPage("我的功能")
+        CatUIPanel.UIPanel.RegisterPage("我的功能")
             .AddCheckbox(autoOpen, "进入游戏后自动打开")
             .AddButton("执行", () => DoSomething())
             .AddLabel("说明文字");
@@ -27,7 +36,7 @@ public class MyPlugin : BaseUnityPlugin
 }
 
 // whenever your mod needs the user's attention:
-YummiUIPanel.UIPanel.OpenPage("我的功能");
+CatUIPanel.UIPanel.OpenPage("我的功能");
 ```
 
 - Register in `Awake`; the window is built the first time it is opened in a game.
@@ -41,11 +50,18 @@ YummiUIPanel.UIPanel.OpenPage("我的功能");
 <details>
 <summary>中文</summary>
 
-**戴森球计划 mod 共用的游戏内面板。** 右下角截图按钮正上方有一个白色小猫按钮，点开是一个窗口，每个注册过的 mod 占左侧一个分页。
+**戴森球计划 mod 内的游戏内面板。** 
+右下角截图按钮正上方有一个白色小猫按钮，点开是一个窗口，每个注册过的 mod 占左侧一个分页。
+这个 mod 旨在给 mod 作者们提供一个公共的、不含其他功能的轻量级面板。
+虽然很遗憾，到目前为止，这个面板仍然是 alpha 原型阶段。
+
+![小猫入口](screenshots/launcher.png)
+
+![猫猫面板](screenshots/panel.png)
 
 ## 玩家
 
-- 点小猫按钮打开/关闭面板；窗口关闭按钮或 Esc 也能关闭。
+- 按 **F9** 或点小猫按钮打开/关闭面板；窗口关闭按钮或 Esc 也能关闭。
 - 小猫按钮如果挡住了别的东西，可在配置文件里用 `Launcher/OffsetX`、`Launcher/OffsetY` 挪位置。
 
 ## mod 作者

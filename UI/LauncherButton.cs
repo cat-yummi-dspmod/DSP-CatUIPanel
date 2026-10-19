@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
-namespace YummiUIPanel.UI
+namespace CatUIPanel.UI
 {
     /// <summary>右下角截图按钮正上方的小猫按钮。克隆截图按钮本身，大小和外观自然与之一致。</summary>
     internal static class LauncherButton
@@ -52,7 +52,7 @@ namespace YummiUIPanel.UI
             Button photo = UIRoot.instance.uiGame.gameMenu.buttonS;
             photoRect = (RectTransform)photo.transform;
             root = Object.Instantiate(photo.gameObject, photoRect.parent, false);
-            root.name = "yummi-ui-harness-launcher";
+            root.name = "cat-ui-harness-launcher";
             rect = (RectTransform)root.transform;
             Widgets.StripLocalizers(root);
 
@@ -100,7 +100,7 @@ namespace YummiUIPanel.UI
 
         private static void ApplyTips(UIButton uiButton)
         {
-            uiButton.tips.tipTitle = L10n.Pick("悠米面板(F9)", "Yummi Panel (F9)");
+            uiButton.tips.tipTitle = L10n.Pick("猫猫面板(F9)", "Cat Panel (F9)");
             uiButton.tips.tipText = L10n.Pick("一些mod的面板入口", "Entry to some mod panels");
             if (uiButton.tips.corner == 0)
             {

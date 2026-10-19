@@ -3,13 +3,13 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 
-namespace YummiUIPanel
+namespace CatUIPanel
 {
-    [BepInPlugin(Guid, "YummiUIPanel", Version)]
+    [BepInPlugin(Guid, "CatUIPanel", Version)]
     public class Plugin : BaseUnityPlugin
     {
-        public const string Guid = "com.yummi.dsp.yummiuipanel";
-        public const string Version = "0.0.0";
+        public const string Guid = "com.cat.dsp.catuipanel";
+        public const string Version = "0.0.1";
 
         private static readonly Harmony harmony = new Harmony(Guid);
         internal static ManualLogSource Log;

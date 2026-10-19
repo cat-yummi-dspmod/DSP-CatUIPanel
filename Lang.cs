@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace YummiUIPanel
+namespace CatUIPanel
 {
     /// <summary>
     /// 中英文文案。语言只在 <see cref="Refresh"/> 时读一次游戏设置，之后 <see cref="Pick"/> 只用缓存。

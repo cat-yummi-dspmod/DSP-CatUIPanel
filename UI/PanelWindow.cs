@@ -22,6 +22,26 @@ namespace CatUIPanel.UI
         private const float BottomPad = 24f;
         private const int BodyFontSize = 15;
         private const int ButtonFontSize = 14;
+        private sealed class SliderBinding
+        {
+            public SliderItem Item;
+            public Slider Slider;
+            public InputField Input;
+            public bool IgnoreSlider;
+        }
+
+        private sealed class SelectionBinding
+        {
+            public SelectionItem Item;
+            public List<UIButton> Buttons;
+        }
+
+        private sealed class FloatFieldBinding
+        {
+            public FloatFieldItem Item;
+            public InputField Input;
+        }
+
         private sealed class PageView
         {
             public Page Page;
@@ -29,6 +49,9 @@ namespace CatUIPanel.UI
             public GameObject Panel;
             public float ContentLeft;
             public readonly List<(CheckboxItem item, Image check)> Checkboxes = new List<(CheckboxItem, Image)>();
+            public readonly List<SliderBinding> Sliders = new List<SliderBinding>();
+            public readonly List<SelectionBinding> Selections = new List<SelectionBinding>();
+            public readonly List<FloatFieldBinding> FloatFields = new List<FloatFieldBinding>();
         }
 
         private struct LangText
@@ -164,7 +187,7 @@ namespace CatUIPanel.UI
                 Close();
                 return;
             }
-            SyncCheckboxes();
+            SyncControls();
         }
 
         private static void ToggleFromLauncher()
@@ -198,7 +221,7 @@ namespace CatUIPanel.UI
             window.SetActive(true);
             window.transform.SetAsLastSibling();
             RefitFrameToContent();
-            SyncCheckboxes();
+            SyncControls();
         }
 
         private static void ShowPage(PageView current)
@@ -212,7 +235,7 @@ namespace CatUIPanel.UI
             }
         }
 
-        private static void SyncCheckboxes()
+        private static void SyncControls()
         {
             foreach (PageView v in views)
             {
@@ -226,6 +249,33 @@ namespace CatUIPanel.UI
                     {
                         check.enabled = item.Entry.Value;
                     }
+                }
+                foreach (SliderBinding sb in v.Sliders)
+                {
+                    if (sb.Slider != null && !sb.IgnoreSlider)
+                    {
+                        float cfg = Mathf.Clamp(sb.Item.Entry.Value, sb.Item.Min, sb.Item.Max);
+                        if (Mathf.Abs(sb.Slider.value - cfg) > 0.0001f)
+                        {
+                            sb.Slider.SetValueWithoutNotify(cfg);
+                        }
+                        if (sb.Input != null && !sb.Input.isFocused)
+                        {
+                            sb.Input.text = Widgets.FormatFloat(cfg, sb.Item.DecimalPlaces);
+                        }
+                    }
+                }
+                foreach (FloatFieldBinding fb in v.FloatFields)
+                {
+                    if (fb.Input != null && !fb.Input.isFocused)
+                    {
+                        float cfg = Mathf.Clamp(fb.Item.Entry.Value, fb.Item.Min, fb.Item.Max);
+                        fb.Input.text = Widgets.FormatFloat(cfg, fb.Item.DecimalPlaces);
+                    }
+                }
+                foreach (SelectionBinding sel in v.Selections)
+                {
+                    Widgets.HighlightSelection(sel.Buttons, sel.Item.Entry.Value);
                 }
             }
         }
@@ -330,7 +380,7 @@ namespace CatUIPanel.UI
                 var view = new PageView { Page = page };
                 PageView captured = view;
                 view.Tab = Widgets.CreateTabButton(body, page.Title, TabLeft, tabsBottom, tabColumnWidth, TabHeight,
-                    () => { ShowPage(captured); SyncCheckboxes(); });
+                    () => { ShowPage(captured); SyncControls(); });
                 BindText(view.Tab.transform.Find("Text")?.GetComponent<Text>(), page.TitleZh, page.TitleEn);
                 tabsBottom += TabHeight + TabSpacing;
 
@@ -432,7 +482,8 @@ namespace CatUIPanel.UI
                     continue;
                 }
                 string n = rt.gameObject.name;
-                if (n != "cat-checkbox" && n != "cat-button" && n != "cat-label" && n != "cat-tab")
+                if (n != "cat-checkbox" && n != "cat-button" && n != "cat-label" && n != "cat-tab"
+                    && n != "cat-slider-row" && n != "cat-float-field" && n != "cat-selection")
                 {
                     continue;
                 }
@@ -557,6 +608,76 @@ namespace CatUIPanel.UI
                     Text label = Widgets.CreateLabel(parent, "", x, y, contentWidth, BodyFontSize);
                     BindText(label, l.TextZh, l.TextEn);
                     return label.rectTransform.sizeDelta.y;
+                }
+                case SliderItem sl:
+                {
+                    string cap = L10n.Pick(sl.TextZh, sl.TextEn);
+                    float rowH = Widgets.CreateSliderRow(parent, cap, x, y, contentWidth,
+                        sl.Min, sl.Max, sl.Entry.Value, sl.DecimalPlaces,
+                        out Slider slider, out InputField input);
+                    var binding = new SliderBinding { Item = sl, Slider = slider, Input = input };
+                    view.Sliders.Add(binding);
+                    slider.onValueChanged.AddListener(v =>
+                    {
+                        float clamped = Mathf.Clamp(v, sl.Min, sl.Max);
+                        sl.Entry.Value = clamped;
+                        if (input != null && !input.isFocused)
+                        {
+                            input.text = Widgets.FormatFloat(clamped, sl.DecimalPlaces);
+                        }
+                    });
+                    input.onEndEdit.AddListener(text =>
+                    {
+                        if (Widgets.TryParseFloat(text, out float parsed))
+                        {
+                            parsed = Mathf.Clamp(parsed, sl.Min, sl.Max);
+                            sl.Entry.Value = parsed;
+                            binding.IgnoreSlider = true;
+                            slider.SetValueWithoutNotify(parsed);
+                            binding.IgnoreSlider = false;
+                            input.text = Widgets.FormatFloat(parsed, sl.DecimalPlaces);
+                        }
+                        else
+                        {
+                            input.text = Widgets.FormatFloat(sl.Entry.Value, sl.DecimalPlaces);
+                        }
+                    });
+                    return rowH;
+                }
+                case FloatFieldItem ff:
+                {
+                    string cap = L10n.Pick(ff.TextZh, ff.TextEn);
+                    float rowH = Widgets.CreateFloatFieldRow(parent, cap, x, y, contentWidth,
+                        ff.Min, ff.Max, ff.Entry.Value, ff.DecimalPlaces, out InputField input);
+                    view.FloatFields.Add(new FloatFieldBinding { Item = ff, Input = input });
+                    input.onEndEdit.AddListener(text =>
+                    {
+                        if (Widgets.TryParseFloat(text, out float parsed))
+                        {
+                            parsed = Mathf.Clamp(parsed, ff.Min, ff.Max);
+                            ff.Entry.Value = parsed;
+                            input.text = Widgets.FormatFloat(parsed, ff.DecimalPlaces);
+                        }
+                        else
+                        {
+                            input.text = Widgets.FormatFloat(ff.Entry.Value, ff.DecimalPlaces);
+                        }
+                    });
+                    return rowH;
+                }
+                case SelectionItem sel:
+                {
+                    string cap = L10n.Pick(sel.CaptionZh, sel.CaptionEn);
+                    string[] opts = new string[sel.OptionsZh.Length];
+                    for (int i = 0; i < opts.Length; i++)
+                    {
+                        opts[i] = L10n.Pick(sel.OptionsZh[i], sel.OptionsEn[i]);
+                    }
+                    float rowH = Widgets.CreateSelectionBlock(parent, cap, x, y, contentWidth, opts, sel.Entry.Value,
+                        idx => sel.Entry.Value = idx,
+                        out List<UIButton> buttons);
+                    view.Selections.Add(new SelectionBinding { Item = sel, Buttons = buttons });
+                    return rowH;
                 }
                 default:
                     return 0f;

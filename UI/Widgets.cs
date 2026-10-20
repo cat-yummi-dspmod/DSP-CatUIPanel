@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
@@ -283,17 +284,289 @@ namespace CatUIPanel.UI
             {
                 return 0f;
             }
-            if (row.name == "cat-checkbox")
+            if (row.name == "cat-checkbox" || row.name == "cat-slider-row" || row.name == "cat-float-field" || row.name == "cat-selection")
             {
-                Text t = row.GetComponentInChildren<Text>(true);
-                RectTransform box = row.Find("cat-checkbox-box") as RectTransform;
-                float boxH = box != null ? box.sizeDelta.y : 0f;
-                if (t != null)
-                {
-                    return Mathf.Max(boxH, t.preferredHeight + 2f, rt.sizeDelta.y);
-                }
+                return Mathf.Max(1f, rt.sizeDelta.y);
             }
             return Mathf.Max(1f, rt.sizeDelta.y);
+        }
+
+        private const float SliderRowHeight = 56f;
+        private const float SliderControlHeight = 22f;
+        private const float FloatFieldRowHeight = 36f;
+        private const float SelectionOptionHeight = 30f;
+
+        /// <summary>标题 + 滑条 + 右侧输入框。</summary>
+        public static float CreateSliderRow(
+            Transform parent, string caption, float x, float y, float width,
+            float min, float max, float value, int decimals,
+            out Slider slider, out InputField input)
+        {
+            var hostGo = new GameObject("cat-slider-row", typeof(RectTransform));
+            RectTransform host = PlaceTopLeft(hostGo.transform, x, y, parent);
+            float captionH = 22f;
+            Text cap = CreateLabel(host, caption, 0f, 0f, width, 14);
+            cap.fontSize = 14;
+
+            Slider sliderTemplate = ResolveSliderTemplate();
+            if (sliderTemplate == null)
+            {
+                throw new InvalidOperationException("CatUIPanel: no Slider template in game UI (open a save first).");
+            }
+            slider = Object.Instantiate(sliderTemplate, host, false);
+            slider.gameObject.name = "slider";
+            slider.gameObject.SetActive(true);
+            RectTransform sliderRt = (RectTransform)slider.transform;
+            PlaceTopLeft(slider.transform, 0f, captionH + 4f, host);
+            float inputW = 88f;
+            sliderRt.sizeDelta = new Vector2(width - inputW - 8f, SliderControlHeight);
+            slider.minValue = min;
+            slider.maxValue = max;
+            slider.wholeNumbers = false;
+            slider.value = Mathf.Clamp(value, min, max);
+
+            input = CreateNumericInput(host, width - inputW, captionH + 4f, inputW, SliderControlHeight, decimals);
+            input.text = FormatFloat(value, decimals);
+
+            host.sizeDelta = new Vector2(width, SliderRowHeight);
+            return SliderRowHeight;
+        }
+
+        public static float CreateFloatFieldRow(
+            Transform parent, string caption, float x, float y, float width,
+            float min, float max, float value, int decimals,
+            out InputField input)
+        {
+            var hostGo = new GameObject("cat-float-field", typeof(RectTransform));
+            RectTransform host = PlaceTopLeft(hostGo.transform, x, y, parent);
+            float labelW = Mathf.Min(width * 0.55f, 280f);
+            Text cap = CreateLabel(host, caption, 0f, 0f, labelW, 14);
+            cap.fontSize = 14;
+            input = CreateNumericInput(host, labelW + 8f, 0f, width - labelW - 8f, FloatFieldRowHeight - 4f, decimals);
+            input.text = FormatFloat(value, decimals);
+            host.sizeDelta = new Vector2(width, FloatFieldRowHeight);
+            return FloatFieldRowHeight;
+        }
+
+        public static float CreateSelectionBlock(
+            Transform parent, string caption, float x, float y, float width,
+            string[] options, int selected,
+            Action<int> onPick,
+            out List<UIButton> optionButtons)
+        {
+            optionButtons = new List<UIButton>();
+            var hostGo = new GameObject("cat-selection", typeof(RectTransform));
+            RectTransform host = PlaceTopLeft(hostGo.transform, x, y, parent);
+            float cy = 0f;
+            if (!string.IsNullOrEmpty(caption))
+            {
+                Text cap = CreateLabel(host, caption, 0f, cy, width, 14);
+                cap.fontSize = 14;
+                cy += cap.rectTransform.sizeDelta.y + 6f;
+            }
+            for (int i = 0; i < options.Length; i++)
+            {
+                int idx = i;
+                UIButton btn = CreateButton(host, options[i], 0f, cy, width, SelectionOptionHeight, 13,
+                    () => onPick(idx));
+                optionButtons.Add(btn);
+                cy += SelectionOptionHeight + 4f;
+            }
+            host.sizeDelta = new Vector2(width, cy);
+            HighlightSelection(optionButtons, selected);
+            return cy;
+        }
+
+        public static void HighlightSelection(List<UIButton> buttons, int selected)
+        {
+            if (buttons == null)
+            {
+                return;
+            }
+            for (int i = 0; i < buttons.Count; i++)
+            {
+                buttons[i].highlighted = i == selected;
+            }
+        }
+
+        private static readonly Color NumericInputTextColor = new Color(0.82f, 0.88f, 0.95f, 1f);
+        private static readonly Color NumericInputBgColor = new Color(0.08f, 0.1f, 0.14f, 0.72f);
+
+        private static InputField ResolveInputFieldTemplate()
+        {
+            UIGame game = UIRoot.instance != null ? UIRoot.instance.uiGame : null;
+            UIDEInspector inspector = game?.dysonEditor?.controlPanel?.inspector;
+            if (inspector?.layerInfo?.input0 != null)
+            {
+                return inspector.layerInfo.input0;
+            }
+            if (inspector?.swarmInfo?.input0 != null)
+            {
+                return inspector.swarmInfo.input0;
+            }
+            if (game?.stationWindow?.nameInput != null)
+            {
+                return game.stationWindow.nameInput;
+            }
+            return null;
+        }
+
+        private static Slider ResolveSliderTemplate()
+        {
+            UIStationWindow w = UIRoot.instance?.uiGame?.stationWindow;
+            if (w == null)
+            {
+                return null;
+            }
+            if (w.maxChargePowerSlider != null)
+            {
+                return w.maxChargePowerSlider;
+            }
+            if (w.maxMiningSpeedSlider != null)
+            {
+                return w.maxMiningSpeedSlider;
+            }
+            return null;
+        }
+
+        private static void PrepareClonedInputField(InputField field)
+        {
+            UIInputField uiInput = field.GetComponent<UIInputField>();
+            if (uiInput != null)
+            {
+                Object.DestroyImmediate(uiInput);
+            }
+            UIButton uiBtn = field.GetComponent<UIButton>();
+            if (uiBtn != null)
+            {
+                Object.DestroyImmediate(uiBtn);
+            }
+            Button uguiBtn = field.GetComponent<Button>();
+            if (uguiBtn != null)
+            {
+                Object.DestroyImmediate(uguiBtn);
+            }
+            field.onValueChanged = new InputField.OnChangeEvent();
+            field.onEndEdit = new InputField.EndEditEvent();
+            field.interactable = true;
+            field.contentType = InputField.ContentType.DecimalNumber;
+            field.characterValidation = InputField.CharacterValidation.Decimal;
+        }
+
+        private static void ApplyNumericInputLook(InputField field)
+        {
+            if (field.placeholder != null)
+            {
+                field.placeholder.gameObject.SetActive(false);
+                field.placeholder = null;
+            }
+
+            Image bg = field.GetComponent<Image>();
+            if (bg != null)
+            {
+                bg.color = NumericInputBgColor;
+            }
+
+            foreach (Transform child in field.transform)
+            {
+                string n = child.name.ToLowerInvariant();
+                if (n.Contains("frame") || n.Contains("highlight") || n.Contains("glow"))
+                {
+                    child.gameObject.SetActive(false);
+                }
+            }
+
+            Text text = field.textComponent;
+            if (text == null)
+            {
+                text = field.GetComponentInChildren<Text>(true);
+            }
+            foreach (Text t in field.GetComponentsInChildren<Text>(true))
+            {
+                if (t != text)
+                {
+                    t.gameObject.SetActive(false);
+                }
+            }
+            if (text == null)
+            {
+                return;
+            }
+            field.textComponent = text;
+            foreach (Outline outline in text.GetComponents<Outline>())
+            {
+                Object.DestroyImmediate(outline);
+            }
+            foreach (Shadow shadow in text.GetComponents<Shadow>())
+            {
+                Object.DestroyImmediate(shadow);
+            }
+            Text refText = UIRoot.instance.uiGame.assemblerWindow.stateText;
+            text.font = refText.font;
+            text.fontStyle = FontStyle.Normal;
+            text.fontSize = 14;
+            text.color = NumericInputTextColor;
+            text.alignment = TextAnchor.MiddleRight;
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.supportRichText = false;
+            text.raycastTarget = true;
+            RectTransform trt = text.rectTransform;
+            trt.anchorMin = Vector2.zero;
+            trt.anchorMax = Vector2.one;
+            trt.pivot = new Vector2(0.5f, 0.5f);
+            trt.offsetMin = new Vector2(6f, 2f);
+            trt.offsetMax = new Vector2(-6f, -2f);
+            trt.localScale = Vector3.one;
+        }
+
+        private static InputField CreateNumericInput(Transform parent, float x, float y, float w, float h, int decimals)
+        {
+            InputField template = ResolveInputFieldTemplate();
+            if (template == null)
+            {
+                throw new InvalidOperationException("CatUIPanel: no InputField template in game UI (enter a game first).");
+            }
+            InputField field = Object.Instantiate(template, parent, false);
+            field.gameObject.name = "cat-input";
+            field.gameObject.SetActive(true);
+            StripLocalizers(field.gameObject);
+            PrepareClonedInputField(field);
+            ApplyNumericInputLook(field);
+            RectTransform rt = PlaceTopLeft(field.transform, x, y, parent);
+            rt.sizeDelta = new Vector2(w, h);
+            if (field.textComponent == null)
+            {
+                var textGo = new GameObject("text", typeof(RectTransform), typeof(Text));
+                textGo.transform.SetParent(field.transform, false);
+                Text text = textGo.GetComponent<Text>();
+                text.font = UIRoot.instance.uiGame.assemblerWindow.stateText.font;
+                text.supportRichText = false;
+                RectTransform trt = text.rectTransform;
+                trt.anchorMin = Vector2.zero;
+                trt.anchorMax = Vector2.one;
+                trt.offsetMin = new Vector2(6f, 2f);
+                trt.offsetMax = new Vector2(-6f, -2f);
+                field.textComponent = text;
+                ApplyNumericInputLook(field);
+            }
+            field.text = "0";
+            return field;
+        }
+
+        public static string FormatFloat(float v, int decimals)
+        {
+            if (decimals <= 0)
+            {
+                return Mathf.RoundToInt(v).ToString();
+            }
+            return v.ToString("F" + decimals);
+        }
+
+        public static bool TryParseFloat(string text, out float value)
+        {
+            return float.TryParse(text, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out value);
         }
 
         public static void SafeInvoke(Action action, string what)

@@ -12,7 +12,7 @@ namespace CatUIPanel
         public const string Guid = Plugin.Guid;
 
         /// <summary>接口版本，只在不兼容地修改公开接口时递增。</summary>
-        public const int ApiVersion = 3;
+        public const int ApiVersion = 4;
 
         internal static readonly List<Page> Pages = new List<Page>();
         internal static int Revision;
@@ -150,6 +150,49 @@ namespace CatUIPanel
             return AddLabel(text, text);
         }
 
+        /// <summary>水平滑条 + 右侧数字输入，绑定 <see cref="ConfigEntry{T}"/>。</summary>
+        public Page AddSlider(ConfigEntry<float> entry, float min, float max, string labelZh, string labelEn, int decimalPlaces = 3)
+        {
+            if (entry == null)
+            {
+                throw new ArgumentNullException(nameof(entry));
+            }
+            return Add(new SliderItem(entry, min, max, labelZh, labelEn, decimalPlaces));
+        }
+
+        public Page AddSlider(ConfigEntry<float> entry, float min, float max, string label, int decimalPlaces = 3)
+        {
+            return AddSlider(entry, min, max, label, label, decimalPlaces);
+        }
+
+        /// <summary>仅数字输入框（无滑条），绑定 float 配置项。</summary>
+        public Page AddFloatField(ConfigEntry<float> entry, float min, float max, string labelZh, string labelEn, int decimalPlaces = 6)
+        {
+            if (entry == null)
+            {
+                throw new ArgumentNullException(nameof(entry));
+            }
+            return Add(new FloatFieldItem(entry, min, max, labelZh, labelEn, decimalPlaces));
+        }
+
+        /// <summary>多选一：每项一行按钮，选中项高亮。</summary>
+        public Page AddSelection(ConfigEntry<int> entry, string captionZh, string captionEn, string[] optionZh, string[] optionEn)
+        {
+            if (entry == null)
+            {
+                throw new ArgumentNullException(nameof(entry));
+            }
+            if (optionZh == null || optionZh.Length == 0)
+            {
+                throw new ArgumentException("At least one option is required.", nameof(optionZh));
+            }
+            if (optionEn == null || optionEn.Length != optionZh.Length)
+            {
+                optionEn = optionZh;
+            }
+            return Add(new SelectionItem(entry, captionZh, captionEn, optionZh, optionEn));
+        }
+
         private Page Add(PageItem item)
         {
             Items.Add(item);
@@ -200,6 +243,59 @@ namespace CatUIPanel
     {
         public LabelItem(string textZh, string textEn) : base(textZh, textEn)
         {
+        }
+    }
+
+    internal sealed class SliderItem : PageItem
+    {
+        public readonly ConfigEntry<float> Entry;
+        public readonly float Min;
+        public readonly float Max;
+        public readonly int DecimalPlaces;
+
+        public SliderItem(ConfigEntry<float> entry, float min, float max, string labelZh, string labelEn, int decimalPlaces)
+            : base(labelZh, labelEn)
+        {
+            Entry = entry;
+            Min = min;
+            Max = max;
+            DecimalPlaces = decimalPlaces;
+        }
+    }
+
+    internal sealed class FloatFieldItem : PageItem
+    {
+        public readonly ConfigEntry<float> Entry;
+        public readonly float Min;
+        public readonly float Max;
+        public readonly int DecimalPlaces;
+
+        public FloatFieldItem(ConfigEntry<float> entry, float min, float max, string labelZh, string labelEn, int decimalPlaces)
+            : base(labelZh, labelEn)
+        {
+            Entry = entry;
+            Min = min;
+            Max = max;
+            DecimalPlaces = decimalPlaces;
+        }
+    }
+
+    internal sealed class SelectionItem : PageItem
+    {
+        public readonly ConfigEntry<int> Entry;
+        public readonly string CaptionZh;
+        public readonly string CaptionEn;
+        public readonly string[] OptionsZh;
+        public readonly string[] OptionsEn;
+
+        public SelectionItem(ConfigEntry<int> entry, string captionZh, string captionEn, string[] optionZh, string[] optionEn)
+            : base(captionZh, captionEn)
+        {
+            Entry = entry;
+            CaptionZh = captionZh ?? "";
+            CaptionEn = captionEn ?? captionZh ?? "";
+            OptionsZh = optionZh;
+            OptionsEn = optionEn;
         }
     }
 }

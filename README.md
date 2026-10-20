@@ -43,7 +43,8 @@ CatUIPanel.UIPanel.OpenPage("我的功能");
 - Checkboxes read and write the `ConfigEntry` directly, so the value is saved in your own cfg and stays in sync with other editors.
 - `OpenPage(id)` opens the panel on that tab. Called outside a game (main menu, loading), it waits until a game is entered; leaving a game cancels it.
 - `RegisterPage(key)`：`key` 是唯一标识，也是左侧分页标题；**多个 mod 用同一个 key 会合并到同一页**（后加载的 mod 在下方追加控件）。
-- `TogglePage(key)`, `Close()`, `IsOpen`, `CurrentPageKey`；`UIPanel.ApiVersion` 现为 3。
+- `TogglePage(key)`, `Close()`, `IsOpen`, `CurrentPageKey`；`UIPanel.ApiVersion` 现为 4。
+- `AddSlider` / `AddFloatField` / `AddSelection`：滑条+数字框、纯数字框、多选一按钮行。
 
 </details>
 
@@ -71,7 +72,8 @@ CatUIPanel.UIPanel.OpenPage("我的功能");
 - 在 `Awake` 里注册；窗口在游戏中第一次打开时才生成。
 - 复选框直接读写 `ConfigEntry`，值保存在你自己 mod 的 cfg 里，和其他配置编辑器保持一致。
 - `OpenPage(id)` 打开面板并切到该页。在主菜单、读档中调用时会排队，进入游戏后再打开；离开游戏时取消排队。
-- 另有 `TogglePage(key)`、`Close()`、`IsOpen`、`CurrentPageKey`。`UIPanel.ApiVersion` 现为 3。
+- 另有 `TogglePage(key)`、`Close()`、`IsOpen`、`CurrentPageKey`。`UIPanel.ApiVersion` 现为 4。
+- `AddSlider` / `AddFloatField` / `AddSelection`：滑条+数字框、纯数字框、多选一按钮行。
 
 ## 中国用户特殊说明
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.4 - 2026-10-20
+
+- Numeric inputs: use dyson editor slider companion field template; darken background and drop heavy outline/placeholder overlap (fixes blown-out values).
+
+## 0.0.3 - 2026-10-20
+
+- Fix slider rows: clone vanilla `InputField` templates instead of adding `InputField` on a `Button` (fixes panel build NRE).
+
+## 0.0.2 - 2026-10-20
+
+- API v4: `AddSlider`, `AddFloatField`, `AddSelection` for mod settings pages (slider + numeric input, radio-style buttons).
+
 ## 0.0.1 - 2026-10-19
 
 - Renamed from **YummiUIPanel** to **CatUIPanel**; in-game title **猫猫面板** / **Cat Panel** (was 悠米 / Yummi). Thunderstore `DSP-CatUIPanel`, dependency `cat_yummi-CatUIPanel-0.0.1`.

@@ -1,7 +1,7 @@
 {
   "name": "CatUIPanel",
   "description": "A lightweight UI framework that gives different mods the same in-game entry point. | 轻量级 UI 框架，为不同 mod 提供统一的游戏内入口。",
-  "version_number": "0.0.4",
+  "version_number": "0.0.8",
   "website_url": "https://github.com/cat-yummi-dspmod/DSP-CatUIPanel",
   "dependencies": [
     "xiaoye97-BepInEx-5.4.17"

@@ -30,10 +30,18 @@ namespace CatUIPanel.UI
             public bool IgnoreSlider;
         }
 
+        private sealed class SwitchBinding
+        {
+            public SwitchItem Item;
+            public RectTransform Knob;
+            public float TrackWidth;
+        }
+
         private sealed class SelectionBinding
         {
             public SelectionItem Item;
             public List<UIButton> Buttons;
+            public List<Image> RadioMarks;
         }
 
         private sealed class FloatFieldBinding
@@ -50,6 +58,7 @@ namespace CatUIPanel.UI
             public float ContentLeft;
             public readonly List<(CheckboxItem item, Image check)> Checkboxes = new List<(CheckboxItem, Image)>();
             public readonly List<SliderBinding> Sliders = new List<SliderBinding>();
+            public readonly List<SwitchBinding> Switches = new List<SwitchBinding>();
             public readonly List<SelectionBinding> Selections = new List<SelectionBinding>();
             public readonly List<FloatFieldBinding> FloatFields = new List<FloatFieldBinding>();
         }
@@ -261,7 +270,7 @@ namespace CatUIPanel.UI
                         }
                         if (sb.Input != null && !sb.Input.isFocused)
                         {
-                            sb.Input.text = Widgets.FormatFloat(cfg, sb.Item.DecimalPlaces);
+                            Widgets.SetNumericInputDisplay(sb.Input, cfg, sb.Item.DecimalPlaces);
                         }
                     }
                 }
@@ -270,13 +279,55 @@ namespace CatUIPanel.UI
                     if (fb.Input != null && !fb.Input.isFocused)
                     {
                         float cfg = Mathf.Clamp(fb.Item.Entry.Value, fb.Item.Min, fb.Item.Max);
-                        fb.Input.text = Widgets.FormatFloat(cfg, fb.Item.DecimalPlaces);
+                        Widgets.SetNumericInputDisplay(fb.Input, cfg, fb.Item.DecimalPlaces);
+                    }
+                }
+                foreach (SwitchBinding sw in v.Switches)
+                {
+                    int val = sw.Item.Entry.Value == 0 ? 0 : 1;
+                    if (sw.Knob != null)
+                    {
+                        Widgets.PlaceSwitchKnob(sw.Knob, val, sw.TrackWidth);
                     }
                 }
                 foreach (SelectionBinding sel in v.Selections)
                 {
-                    Widgets.HighlightSelection(sel.Buttons, sel.Item.Entry.Value);
+                    if (sel.RadioMarks != null && sel.RadioMarks.Count > 0)
+                    {
+                        Widgets.HighlightRadioSelection(sel.RadioMarks, sel.Item.Entry.Value);
+                    }
+                    else
+                    {
+                        Widgets.HighlightSelection(sel.Buttons, sel.Item.Entry.Value);
+                    }
                 }
+            }
+        }
+
+        private static void CommitSliderInput(SliderBinding binding)
+        {
+            SliderItem sl = binding.Item;
+            InputField input = binding.Input;
+            Slider slider = binding.Slider;
+            if (input == null || sl == null)
+            {
+                return;
+            }
+            if (Widgets.TryParseFloat(input.text, out float parsed))
+            {
+                parsed = Mathf.Clamp(parsed, sl.Min, sl.Max);
+                sl.Entry.Value = parsed;
+                if (slider != null)
+                {
+                    binding.IgnoreSlider = true;
+                    slider.SetValueWithoutNotify(parsed);
+                    binding.IgnoreSlider = false;
+                }
+                Widgets.SetNumericInputDisplay(input, parsed, sl.DecimalPlaces);
+            }
+            else
+            {
+                Widgets.SetNumericInputDisplay(input, sl.Entry.Value, sl.DecimalPlaces);
             }
         }
 
@@ -612,36 +663,46 @@ namespace CatUIPanel.UI
                 case SliderItem sl:
                 {
                     string cap = L10n.Pick(sl.TextZh, sl.TextEn);
+                    float init = Mathf.Clamp(sl.Entry.Value, sl.Min, sl.Max);
                     float rowH = Widgets.CreateSliderRow(parent, cap, x, y, contentWidth,
-                        sl.Min, sl.Max, sl.Entry.Value, sl.DecimalPlaces,
-                        out Slider slider, out InputField input);
+                        sl.Min, sl.Max, init, sl.DecimalPlaces,
+                        out Slider slider, out InputField input, out UIButton confirm);
                     var binding = new SliderBinding { Item = sl, Slider = slider, Input = input };
                     view.Sliders.Add(binding);
+                    Widgets.SetNumericInputDisplay(input, init, sl.DecimalPlaces);
+                    GameObject rowHost = slider != null ? slider.transform.parent.gameObject : null;
+                    if (rowHost != null)
+                    {
+                        Widgets.AttachSliderRowDriver(rowHost, slider, input, sl.Min, sl.Max, sl.DecimalPlaces,
+                            clamped =>
+                            {
+                                if (!binding.IgnoreSlider)
+                                {
+                                    sl.Entry.Value = clamped;
+                                }
+                            });
+                    }
                     slider.onValueChanged.AddListener(v =>
                     {
                         float clamped = Mathf.Clamp(v, sl.Min, sl.Max);
                         sl.Entry.Value = clamped;
-                        if (input != null && !input.isFocused)
-                        {
-                            input.text = Widgets.FormatFloat(clamped, sl.DecimalPlaces);
-                        }
+                        Widgets.SetNumericInputDisplay(input, clamped, sl.DecimalPlaces);
                     });
-                    input.onEndEdit.AddListener(text =>
-                    {
-                        if (Widgets.TryParseFloat(text, out float parsed))
-                        {
-                            parsed = Mathf.Clamp(parsed, sl.Min, sl.Max);
-                            sl.Entry.Value = parsed;
-                            binding.IgnoreSlider = true;
-                            slider.SetValueWithoutNotify(parsed);
-                            binding.IgnoreSlider = false;
-                            input.text = Widgets.FormatFloat(parsed, sl.DecimalPlaces);
-                        }
-                        else
-                        {
-                            input.text = Widgets.FormatFloat(sl.Entry.Value, sl.DecimalPlaces);
-                        }
-                    });
+                    input.onEndEdit.AddListener(_ => CommitSliderInput(binding));
+                    confirm.onClick += _ => CommitSliderInput(binding);
+                    return rowH;
+                }
+                case SwitchItem sw:
+                {
+                    string cap = L10n.Pick(sw.CaptionZh, sw.CaptionEn);
+                    string left = L10n.Pick(sw.LeftZh, sw.LeftEn);
+                    string right = L10n.Pick(sw.RightZh, sw.RightEn);
+                    int val = sw.Entry.Value == 0 ? 0 : 1;
+                    float trackW = Widgets.SwitchTrackWidth;
+                    float rowH = Widgets.CreateSwitchRow(parent, cap, x, y, contentWidth, left, right, val,
+                        idx => sw.Entry.Value = idx == 0 ? 0 : 1,
+                        out RectTransform knob);
+                    view.Switches.Add(new SwitchBinding { Item = sw, Knob = knob, TrackWidth = trackW });
                     return rowH;
                 }
                 case FloatFieldItem ff:
@@ -673,10 +734,10 @@ namespace CatUIPanel.UI
                     {
                         opts[i] = L10n.Pick(sel.OptionsZh[i], sel.OptionsEn[i]);
                     }
-                    float rowH = Widgets.CreateSelectionBlock(parent, cap, x, y, contentWidth, opts, sel.Entry.Value,
+                    float rowH = Widgets.CreateRadioSelectionBlock(parent, cap, x, y, contentWidth, opts, sel.Entry.Value,
                         idx => sel.Entry.Value = idx,
-                        out List<UIButton> buttons);
-                    view.Selections.Add(new SelectionBinding { Item = sel, Buttons = buttons });
+                        out List<UIButton> buttons, out List<Image> marks);
+                    view.Selections.Add(new SelectionBinding { Item = sel, Buttons = buttons, RadioMarks = marks });
                     return rowH;
                 }
                 default:

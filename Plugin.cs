@@ -9,7 +9,7 @@ namespace CatUIPanel
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "com.cat.dsp.catuipanel";
-        public const string Version = "0.0.4";
+        public const string Version = "0.0.8";
 
         private static readonly Harmony harmony = new Harmony(Guid);
         internal static ManualLogSource Log;

@@ -284,54 +284,91 @@ namespace CatUIPanel.UI
             {
                 return 0f;
             }
-            if (row.name == "cat-checkbox" || row.name == "cat-slider-row" || row.name == "cat-float-field" || row.name == "cat-selection")
+            if (row.name == "cat-checkbox" || row.name == "cat-slider-row" || row.name == "cat-float-field"
+                || row.name == "cat-selection" || row.name == "cat-switch-row")
             {
                 return Mathf.Max(1f, rt.sizeDelta.y);
             }
             return Mathf.Max(1f, rt.sizeDelta.y);
         }
 
-        private const float SliderRowHeight = 56f;
-        private const float SliderControlHeight = 22f;
-        private const float FloatFieldRowHeight = 36f;
-        private const float SelectionOptionHeight = 30f;
+        private const float SliderRowCaptionHeight = 22f;
+        private const float SliderControlHeight = 24f;
+        private const float SliderBarWidth = 168f;
+        private const float SliderInputWidth = 76f;
+        private const float SliderConfirmWidth = 36f;
+        private const float SliderControlGap = 2f;
+        internal const float SliderComboWidth = SliderBarWidth + SliderControlGap + SliderInputWidth + SliderControlGap + SliderConfirmWidth;
+        private const float FloatFieldInputWidth = 96f;
+        private const float SwitchRowHeight = 20f;
+        private const float SwitchTrackHeight = 11f;
+        internal const float SwitchTrackWidth = 34f;
+        private const float SwitchKnobSize = 9f;
+        private const float SwitchLabelGap = 4f;
+        private const float RadioBoxWidth = 22f;
 
-        /// <summary>标题 + 滑条 + 右侧输入框。</summary>
+        private static float MeasureTextWidth(string text, int fontSize)
+        {
+            Text src = UIRoot.instance.uiGame.assemblerWindow.stateText;
+            Text temp = Object.Instantiate(src);
+            temp.gameObject.SetActive(false);
+            StripLocalizers(temp.gameObject);
+            temp.text = text ?? "";
+            temp.fontSize = fontSize;
+            temp.horizontalOverflow = HorizontalWrapMode.Overflow;
+            float w = temp.preferredWidth;
+            Object.Destroy(temp.gameObject);
+            return w;
+        }
+
+        /// <summary>标题 + 一行（左对齐固定宽度）：滑条 | 数字框 | 确认。</summary>
         public static float CreateSliderRow(
             Transform parent, string caption, float x, float y, float width,
             float min, float max, float value, int decimals,
-            out Slider slider, out InputField input)
+            out Slider slider, out InputField input, out UIButton confirm)
         {
             var hostGo = new GameObject("cat-slider-row", typeof(RectTransform));
             RectTransform host = PlaceTopLeft(hostGo.transform, x, y, parent);
-            float captionH = 22f;
-            Text cap = CreateLabel(host, caption, 0f, 0f, width, 14);
-            cap.fontSize = 14;
-
-            Slider sliderTemplate = ResolveSliderTemplate();
-            if (sliderTemplate == null)
+            float cy = 0f;
+            float hostW = Mathf.Min(width, SliderComboWidth);
+            if (!string.IsNullOrEmpty(caption))
             {
-                throw new InvalidOperationException("CatUIPanel: no Slider template in game UI (open a save first).");
+                Text cap = CreateLabel(host, caption, 0f, cy, width, 14);
+                cap.fontSize = 14;
+                cy += SliderRowCaptionHeight + 4f;
             }
-            slider = Object.Instantiate(sliderTemplate, host, false);
+
+            float sliderW = SliderBarWidth;
+            float inputW = SliderInputWidth;
+            float confirmW = SliderConfirmWidth;
+            float sx = 0f;
+
+            slider = CreatePanelSlider(host);
             slider.gameObject.name = "slider";
-            slider.gameObject.SetActive(true);
             RectTransform sliderRt = (RectTransform)slider.transform;
-            PlaceTopLeft(slider.transform, 0f, captionH + 4f, host);
-            float inputW = 88f;
-            sliderRt.sizeDelta = new Vector2(width - inputW - 8f, SliderControlHeight);
+            PlaceTopLeft(slider.transform, sx, cy, host);
+            sliderRt.sizeDelta = new Vector2(sliderW, SliderControlHeight);
             slider.minValue = min;
             slider.maxValue = max;
             slider.wholeNumbers = false;
-            slider.value = Mathf.Clamp(value, min, max);
+            slider.onValueChanged = new Slider.SliderEvent();
+            float clampedInit = Mathf.Clamp(value, min, max);
+            slider.SetValueWithoutNotify(clampedInit);
 
-            input = CreateNumericInput(host, width - inputW, captionH + 4f, inputW, SliderControlHeight, decimals);
-            input.text = FormatFloat(value, decimals);
+            float ix = sx + sliderW + SliderControlGap;
+            input = CreateNumericInput(host, ix, cy, inputW, SliderControlHeight, decimals, clampedInit);
 
-            host.sizeDelta = new Vector2(width, SliderRowHeight);
-            return SliderRowHeight;
+            float cx = ix + inputW + SliderControlGap;
+            string ok = L10n.Pick("确认", "OK");
+            confirm = CreateButton(host, ok, cx, cy, confirmW, SliderControlHeight, 12, () => { });
+            confirm.gameObject.name = "cat-slider-confirm";
+
+            float rowH = cy + SliderControlHeight;
+            host.sizeDelta = new Vector2(hostW, rowH);
+            return rowH;
         }
 
+        /// <summary>说明文字（左，可换行）+ 右对齐数字框。</summary>
         public static float CreateFloatFieldRow(
             Transform parent, string caption, float x, float y, float width,
             float min, float max, float value, int decimals,
@@ -339,22 +376,167 @@ namespace CatUIPanel.UI
         {
             var hostGo = new GameObject("cat-float-field", typeof(RectTransform));
             RectTransform host = PlaceTopLeft(hostGo.transform, x, y, parent);
-            float labelW = Mathf.Min(width * 0.55f, 280f);
+            float inputW = FloatFieldInputWidth;
+            float labelW = Mathf.Max(80f, width - inputW - SliderControlGap);
             Text cap = CreateLabel(host, caption, 0f, 0f, labelW, 14);
             cap.fontSize = 14;
-            input = CreateNumericInput(host, labelW + 8f, 0f, width - labelW - 8f, FloatFieldRowHeight - 4f, decimals);
-            input.text = FormatFloat(value, decimals);
-            host.sizeDelta = new Vector2(width, FloatFieldRowHeight);
-            return FloatFieldRowHeight;
+            cap.alignment = TextAnchor.MiddleLeft;
+            Canvas.ForceUpdateCanvases();
+            float labelH = Mathf.Max(SliderControlHeight, cap.preferredHeight + 6f);
+            cap.rectTransform.sizeDelta = new Vector2(labelW, labelH);
+
+            float inputY = (labelH - SliderControlHeight) * 0.5f;
+            input = CreateNumericInput(host, width - inputW, inputY, inputW, SliderControlHeight, decimals, value);
+
+            host.sizeDelta = new Vector2(width, labelH);
+            return labelH;
         }
 
-        public static float CreateSelectionBlock(
+        /// <summary>左/右纯文本 + 固定宽度轨道（0=左，1=右），整组左对齐。</summary>
+        public static float CreateSwitchRow(
+            Transform parent, string caption, float x, float y, float width,
+            string leftLabel, string rightLabel, int value,
+            Action<int> onPick,
+            out RectTransform knob)
+        {
+            var hostGo = new GameObject("cat-switch-row", typeof(RectTransform));
+            RectTransform host = PlaceTopLeft(hostGo.transform, x, y, parent);
+            float cy = 0f;
+            if (!string.IsNullOrEmpty(caption))
+            {
+                Text cap = CreateLabel(host, caption, 0f, cy, width, 14);
+                cap.fontSize = 14;
+                cy += SliderRowCaptionHeight + 4f;
+            }
+
+            float leftW = Mathf.Max(14f, MeasureTextWidth(leftLabel, 14) + 2f);
+            Text leftText = CreateLabel(host, leftLabel, 0f, cy + 2f, leftW, 14);
+            leftText.fontSize = 14;
+            leftText.alignment = TextAnchor.MiddleLeft;
+            leftText.raycastTarget = false;
+            leftText.rectTransform.sizeDelta = new Vector2(leftW, SwitchRowHeight);
+
+            float trackX = leftW + SwitchLabelGap;
+            float trackW = SwitchTrackWidth;
+            float trackY = cy + (SwitchRowHeight - SwitchTrackHeight) * 0.5f;
+            var trackGo = new GameObject("track", typeof(RectTransform), typeof(Image));
+            RectTransform trackRt = PlaceTopLeft(trackGo.transform, trackX, trackY, host);
+            trackRt.sizeDelta = new Vector2(trackW, SwitchTrackHeight);
+            Image trackImg = trackGo.GetComponent<Image>();
+            ApplyTrackSprite(trackImg);
+            trackImg.raycastTarget = true;
+
+            Slider sliderRef = ResolveSliderTemplate();
+            Image handleImg = null;
+            if (sliderRef != null && sliderRef.handleRect != null)
+            {
+                handleImg = sliderRef.handleRect.GetComponent<Image>();
+            }
+            var knobGo = new GameObject("knob", typeof(RectTransform), typeof(Image));
+            RectTransform knobRt = (RectTransform)knobGo.transform;
+            knob = knobRt;
+            knobRt.SetParent(trackRt, false);
+            knobRt.sizeDelta = new Vector2(SwitchKnobSize, SwitchKnobSize);
+            Image knobImage = knobGo.GetComponent<Image>();
+            if (handleImg != null && handleImg.sprite != null)
+            {
+                knobImage.sprite = handleImg.sprite;
+                knobImage.type = handleImg.type;
+            }
+            knobImage.color = new Color(0.75f, 0.82f, 0.92f, 0.95f);
+            knobImage.raycastTarget = false;
+            PlaceSwitchKnob(knobRt, value, trackW);
+
+            float rightX = trackX + trackW + SwitchLabelGap;
+            float rightW = Mathf.Max(20f, MeasureTextWidth(rightLabel, 14) + 4f);
+            Text rightText = CreateLabel(host, rightLabel, rightX, cy + 2f, rightW, 14);
+            rightText.fontSize = 14;
+            rightText.alignment = TextAnchor.MiddleLeft;
+            rightText.raycastTarget = false;
+            rightText.rectTransform.sizeDelta = new Vector2(rightW, SwitchRowHeight);
+
+            int current = value == 0 ? 0 : 1;
+            void Pick(int v)
+            {
+                current = v == 0 ? 0 : 1;
+                PlaceSwitchKnob(knobRt, current, trackW);
+                ApplySwitchLabelTone(leftText, current == 0);
+                ApplySwitchLabelTone(rightText, current == 1);
+                SafeInvoke(() => onPick(current), "switch");
+            }
+
+            ApplySwitchLabelTone(leftText, current == 0);
+            ApplySwitchLabelTone(rightText, current == 1);
+
+            UIButton trackHit = CreateButton(host, "", trackX, trackY, trackW, SwitchTrackHeight, 12,
+                () => Pick(current == 0 ? 1 : 0));
+            trackHit.gameObject.name = "switch-track";
+            Image trackBtnImg = trackHit.GetComponent<Image>();
+            if (trackBtnImg != null)
+            {
+                trackBtnImg.color = new Color(0f, 0f, 0f, 0.01f);
+            }
+            foreach (Text t in trackHit.GetComponentsInChildren<Text>(true))
+            {
+                t.text = "";
+            }
+
+            float groupW = rightX + rightW;
+            float rowH = cy + SwitchRowHeight;
+            host.sizeDelta = new Vector2(groupW, rowH);
+            return rowH;
+        }
+
+        private static void ApplySwitchLabelTone(Text label, bool active)
+        {
+            if (label == null)
+            {
+                return;
+            }
+            label.color = active
+                ? new Color(1f, 1f, 1f, 0.78f)
+                : LabelColor;
+        }
+
+        public static void PlaceSwitchKnob(RectTransform knob, int value, float trackW)
+        {
+            if (knob == null)
+            {
+                return;
+            }
+            float pad = Mathf.Max(5f, SwitchKnobSize * 0.55f);
+            float x = value == 0 ? pad : Mathf.Max(pad, trackW - pad);
+            knob.anchorMin = new Vector2(0f, 0.5f);
+            knob.anchorMax = new Vector2(0f, 0.5f);
+            knob.pivot = new Vector2(0.5f, 0.5f);
+            knob.anchoredPosition = new Vector2(x, 0f);
+        }
+
+        private static void ApplyTrackSprite(Image trackImg)
+        {
+            trackImg.color = new Color(0.06f, 0.08f, 0.11f, 0.85f);
+            Slider sliderRef = ResolveSliderTemplate();
+            if (sliderRef != null)
+            {
+                Image bg = sliderRef.GetComponent<Image>();
+                if (bg != null && bg.sprite != null)
+                {
+                    trackImg.sprite = bg.sprite;
+                    trackImg.type = bg.type;
+                }
+            }
+        }
+
+        /// <summary>单选圆点 + 换行说明，每项一行。</summary>
+        public static float CreateRadioSelectionBlock(
             Transform parent, string caption, float x, float y, float width,
             string[] options, int selected,
             Action<int> onPick,
-            out List<UIButton> optionButtons)
+            out List<UIButton> optionRows,
+            out List<Image> radioMarks)
         {
-            optionButtons = new List<UIButton>();
+            optionRows = new List<UIButton>();
+            radioMarks = new List<Image>();
             var hostGo = new GameObject("cat-selection", typeof(RectTransform));
             RectTransform host = PlaceTopLeft(hostGo.transform, x, y, parent);
             float cy = 0f;
@@ -364,17 +546,73 @@ namespace CatUIPanel.UI
                 cap.fontSize = 14;
                 cy += cap.rectTransform.sizeDelta.y + 6f;
             }
+
+            UIButton src = UIRoot.instance.uiGame.buildMenu.uxFacilityCheck;
+            float labelW = Mathf.Max(60f, width - RadioBoxWidth - 6f);
             for (int i = 0; i < options.Length; i++)
             {
                 int idx = i;
-                UIButton btn = CreateButton(host, options[i], 0f, cy, width, SelectionOptionHeight, 13,
-                    () => onPick(idx));
-                optionButtons.Add(btn);
-                cy += SelectionOptionHeight + 4f;
+                var rowGo = new GameObject("cat-radio-row", typeof(RectTransform));
+                RectTransform row = PlaceTopLeft(rowGo.transform, 0f, cy, host);
+
+                UIButton box = Object.Instantiate(src, row, false);
+                box.gameObject.name = "cat-radio-box";
+                box.gameObject.SetActive(true);
+                ResetUIButton(box);
+                StripLocalizers(box.gameObject);
+                PlaceTopLeft(box.transform, 0f, 0f, row);
+                Image mark = box.transform.Find("checked")?.GetComponent<Image>();
+                radioMarks.Add(mark);
+                Text rowText = box.transform.Find("text")?.GetComponent<Text>();
+                if (rowText != null)
+                {
+                    rowText.raycastTarget = false;
+                    rowText.text = options[i];
+                    rowText.fontSize = 13;
+                    rowText.horizontalOverflow = HorizontalWrapMode.Wrap;
+                    rowText.verticalOverflow = VerticalWrapMode.Overflow;
+                    rowText.alignment = TextAnchor.UpperLeft;
+                    RectTransform textRt = rowText.rectTransform;
+                    textRt.anchorMin = new Vector2(0f, 1f);
+                    textRt.anchorMax = new Vector2(0f, 1f);
+                    textRt.pivot = new Vector2(0f, 1f);
+                    textRt.anchoredPosition = new Vector2(RadioBoxWidth + 4f, 0f);
+                    textRt.sizeDelta = new Vector2(labelW, 40f);
+                    Canvas.ForceUpdateCanvases();
+                    float prefH = rowText.preferredHeight;
+                    float rowH = Mathf.Max(box.GetComponent<RectTransform>().sizeDelta.y, prefH + 2f);
+                    textRt.sizeDelta = new Vector2(labelW, prefH);
+                    row.sizeDelta = new Vector2(width, rowH);
+                    cy += rowH + 6f;
+                }
+                else
+                {
+                    row.sizeDelta = new Vector2(width, 24f);
+                    cy += 30f;
+                }
+
+                box.onClick += _ => SafeInvoke(() => onPick(idx), options[i]);
+                optionRows.Add(box);
             }
+
             host.sizeDelta = new Vector2(width, cy);
-            HighlightSelection(optionButtons, selected);
+            HighlightRadioSelection(radioMarks, selected);
             return cy;
+        }
+
+        public static void HighlightRadioSelection(List<Image> marks, int selected)
+        {
+            if (marks == null)
+            {
+                return;
+            }
+            for (int i = 0; i < marks.Count; i++)
+            {
+                if (marks[i] != null)
+                {
+                    marks[i].enabled = i == selected;
+                }
+            }
         }
 
         public static void HighlightSelection(List<UIButton> buttons, int selected)
@@ -389,8 +627,137 @@ namespace CatUIPanel.UI
             }
         }
 
-        private static readonly Color NumericInputTextColor = new Color(0.82f, 0.88f, 0.95f, 1f);
-        private static readonly Color NumericInputBgColor = new Color(0.08f, 0.1f, 0.14f, 0.72f);
+        /// <summary>面板专用滑条（清空预制体监听，避免原版 UI 逻辑吞事件）。</summary>
+        private static Slider CreatePanelSlider(Transform parent)
+        {
+            Slider template = ResolveSliderTemplate();
+            Slider s;
+            if (template != null)
+            {
+                s = Object.Instantiate(template, parent, false);
+                s.gameObject.SetActive(true);
+                s.onValueChanged = new Slider.SliderEvent();
+            }
+            else
+            {
+                s = CreateBasicSlider(parent);
+            }
+            return s;
+        }
+
+        public static void SetNumericInputDisplay(InputField field, float value, int decimals)
+        {
+            if (field == null)
+            {
+                return;
+            }
+            string s = FormatFloat(value, decimals);
+            field.SetTextWithoutNotify(s);
+            if (field.textComponent != null)
+            {
+                field.textComponent.text = s;
+            }
+        }
+
+        public static void AttachSliderRowDriver(
+            GameObject host, Slider slider, InputField input,
+            float min, float max, int decimals, System.Action<float> onValue)
+        {
+            var driver = host.AddComponent<SliderRowDriver>();
+            driver.Slider = slider;
+            driver.Input = input;
+            driver.Min = min;
+            driver.Max = max;
+            driver.Decimals = decimals;
+            driver.OnValue = onValue;
+        }
+
+        private static Slider CreateBasicSlider(Transform parent)
+        {
+            Slider reference = ResolveSliderTemplate();
+            var root = new GameObject("slider", typeof(RectTransform), typeof(Slider));
+            root.transform.SetParent(parent, false);
+            RectTransform rootRt = (RectTransform)root.transform;
+            rootRt.anchorMin = new Vector2(0f, 1f);
+            rootRt.anchorMax = new Vector2(0f, 1f);
+            rootRt.pivot = new Vector2(0f, 1f);
+
+            Image refBg = reference != null ? reference.GetComponent<Image>() : null;
+            Image refFill = reference?.fillRect != null ? reference.fillRect.GetComponent<Image>() : null;
+            Image refHandle = reference?.handleRect != null ? reference.handleRect.GetComponent<Image>() : null;
+
+            GameObject bgGo = new GameObject("Background", typeof(RectTransform), typeof(Image));
+            RectTransform bgRt = (RectTransform)bgGo.transform;
+            bgRt.SetParent(root.transform, false);
+            StretchFill(bgRt);
+            Image bgImg = bgGo.GetComponent<Image>();
+            if (refBg != null && refBg.sprite != null)
+            {
+                bgImg.sprite = refBg.sprite;
+                bgImg.type = refBg.type;
+            }
+            bgImg.color = new Color(0.08f, 0.1f, 0.12f, 0.9f);
+
+            GameObject fillArea = new GameObject("Fill Area", typeof(RectTransform));
+            RectTransform fillAreaRt = (RectTransform)fillArea.transform;
+            fillAreaRt.SetParent(root.transform, false);
+            StretchFill(fillAreaRt, 4f, 4f);
+
+            GameObject fillGo = new GameObject("Fill", typeof(RectTransform), typeof(Image));
+            RectTransform fillRt = (RectTransform)fillGo.transform;
+            fillRt.SetParent(fillArea.transform, false);
+            StretchFill(fillRt);
+            Image fillImg = fillGo.GetComponent<Image>();
+            if (refFill != null && refFill.sprite != null)
+            {
+                fillImg.sprite = refFill.sprite;
+                fillImg.type = refFill.type;
+                fillImg.color = refFill.color;
+            }
+            else
+            {
+                fillImg.color = new Color(0.35f, 0.55f, 0.75f, 0.85f);
+            }
+
+            GameObject handleArea = new GameObject("Handle Slide Area", typeof(RectTransform));
+            RectTransform handleAreaRt = (RectTransform)handleArea.transform;
+            handleAreaRt.SetParent(root.transform, false);
+            StretchFill(handleAreaRt, 4f, 4f);
+
+            GameObject handleGo = new GameObject("Handle", typeof(RectTransform), typeof(Image));
+            RectTransform handleRt = (RectTransform)handleGo.transform;
+            handleRt.SetParent(handleArea.transform, false);
+            handleRt.sizeDelta = new Vector2(14f, 18f);
+            Image handleImg = handleGo.GetComponent<Image>();
+            if (refHandle != null && refHandle.sprite != null)
+            {
+                handleImg.sprite = refHandle.sprite;
+                handleImg.type = refHandle.type;
+                handleImg.color = refHandle.color;
+            }
+            else
+            {
+                handleImg.color = new Color(0.8f, 0.86f, 0.94f, 1f);
+            }
+
+            Slider slider = root.GetComponent<Slider>();
+            slider.fillRect = fillRt;
+            slider.handleRect = handleRt;
+            slider.targetGraphic = handleImg;
+            slider.direction = Slider.Direction.LeftToRight;
+            return slider;
+        }
+
+        private static void StretchFill(RectTransform rt, float padX = 0f, float padY = 0f)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(padX, padY);
+            rt.offsetMax = new Vector2(-padX, -padY);
+        }
+
+        private static readonly Color NumericInputTextColor = new Color(1f, 1f, 1f, 0.58f);
+        private static readonly Color NumericInputBgColor = new Color(0.04f, 0.05f, 0.07f, 0.5f);
 
         private static InputField ResolveInputFieldTemplate()
         {
@@ -429,70 +796,32 @@ namespace CatUIPanel.UI
             return null;
         }
 
-        private static void PrepareClonedInputField(InputField field)
+        private static Sprite ResolveNumericInputBgSprite()
         {
-            UIInputField uiInput = field.GetComponent<UIInputField>();
-            if (uiInput != null)
+            InputField template = ResolveInputFieldTemplate();
+            Image img = template != null ? template.GetComponent<Image>() : null;
+            if (img != null && img.sprite != null)
             {
-                Object.DestroyImmediate(uiInput);
+                return img.sprite;
             }
-            UIButton uiBtn = field.GetComponent<UIButton>();
-            if (uiBtn != null)
+            Slider slider = ResolveSliderTemplate();
+            if (slider != null)
             {
-                Object.DestroyImmediate(uiBtn);
+                Image fill = slider.fillRect != null ? slider.fillRect.GetComponent<Image>() : null;
+                if (fill != null && fill.sprite != null)
+                {
+                    return fill.sprite;
+                }
             }
-            Button uguiBtn = field.GetComponent<Button>();
-            if (uguiBtn != null)
-            {
-                Object.DestroyImmediate(uguiBtn);
-            }
-            field.onValueChanged = new InputField.OnChangeEvent();
-            field.onEndEdit = new InputField.EndEditEvent();
-            field.interactable = true;
-            field.contentType = InputField.ContentType.DecimalNumber;
-            field.characterValidation = InputField.CharacterValidation.Decimal;
+            return null;
         }
 
-        private static void ApplyNumericInputLook(InputField field)
+        private static void StripTextEffects(Text text)
         {
-            if (field.placeholder != null)
-            {
-                field.placeholder.gameObject.SetActive(false);
-                field.placeholder = null;
-            }
-
-            Image bg = field.GetComponent<Image>();
-            if (bg != null)
-            {
-                bg.color = NumericInputBgColor;
-            }
-
-            foreach (Transform child in field.transform)
-            {
-                string n = child.name.ToLowerInvariant();
-                if (n.Contains("frame") || n.Contains("highlight") || n.Contains("glow"))
-                {
-                    child.gameObject.SetActive(false);
-                }
-            }
-
-            Text text = field.textComponent;
-            if (text == null)
-            {
-                text = field.GetComponentInChildren<Text>(true);
-            }
-            foreach (Text t in field.GetComponentsInChildren<Text>(true))
-            {
-                if (t != text)
-                {
-                    t.gameObject.SetActive(false);
-                }
-            }
             if (text == null)
             {
                 return;
             }
-            field.textComponent = text;
             foreach (Outline outline in text.GetComponents<Outline>())
             {
                 Object.DestroyImmediate(outline);
@@ -501,8 +830,36 @@ namespace CatUIPanel.UI
             {
                 Object.DestroyImmediate(shadow);
             }
+        }
+
+        private static InputField CreateNumericInput(Transform parent, float x, float y, float w, float h, int decimals,
+            float initialValue)
+        {
+            if (UIRoot.instance?.uiGame?.assemblerWindow?.stateText == null)
+            {
+                throw new InvalidOperationException("CatUIPanel: game UI not ready (enter a save first).");
+            }
+
+            var go = new GameObject("cat-input", typeof(RectTransform), typeof(Image), typeof(InputField));
+            RectTransform rt = PlaceTopLeft(go.transform, x, y, parent);
+            rt.sizeDelta = new Vector2(w, h);
+
+            Image bg = go.GetComponent<Image>();
+            Sprite bgSprite = ResolveNumericInputBgSprite();
+            if (bgSprite != null)
+            {
+                bg.sprite = bgSprite;
+                bg.type = Image.Type.Sliced;
+            }
+            bg.color = NumericInputBgColor;
+            bg.raycastTarget = true;
+
             Text refText = UIRoot.instance.uiGame.assemblerWindow.stateText;
-            text.font = refText.font;
+            Text text = Object.Instantiate(refText, go.transform, false);
+            text.gameObject.name = "text";
+            text.gameObject.SetActive(true);
+            StripLocalizers(text.gameObject);
+            StripTextEffects(text);
             text.fontStyle = FontStyle.Normal;
             text.fontSize = 14;
             text.color = NumericInputTextColor;
@@ -518,39 +875,18 @@ namespace CatUIPanel.UI
             trt.offsetMin = new Vector2(6f, 2f);
             trt.offsetMax = new Vector2(-6f, -2f);
             trt.localScale = Vector3.one;
-        }
 
-        private static InputField CreateNumericInput(Transform parent, float x, float y, float w, float h, int decimals)
-        {
-            InputField template = ResolveInputFieldTemplate();
-            if (template == null)
-            {
-                throw new InvalidOperationException("CatUIPanel: no InputField template in game UI (enter a game first).");
-            }
-            InputField field = Object.Instantiate(template, parent, false);
-            field.gameObject.name = "cat-input";
-            field.gameObject.SetActive(true);
-            StripLocalizers(field.gameObject);
-            PrepareClonedInputField(field);
-            ApplyNumericInputLook(field);
-            RectTransform rt = PlaceTopLeft(field.transform, x, y, parent);
-            rt.sizeDelta = new Vector2(w, h);
-            if (field.textComponent == null)
-            {
-                var textGo = new GameObject("text", typeof(RectTransform), typeof(Text));
-                textGo.transform.SetParent(field.transform, false);
-                Text text = textGo.GetComponent<Text>();
-                text.font = UIRoot.instance.uiGame.assemblerWindow.stateText.font;
-                text.supportRichText = false;
-                RectTransform trt = text.rectTransform;
-                trt.anchorMin = Vector2.zero;
-                trt.anchorMax = Vector2.one;
-                trt.offsetMin = new Vector2(6f, 2f);
-                trt.offsetMax = new Vector2(-6f, -2f);
-                field.textComponent = text;
-                ApplyNumericInputLook(field);
-            }
-            field.text = "0";
+            InputField field = go.GetComponent<InputField>();
+            field.textComponent = text;
+            field.targetGraphic = bg;
+            field.contentType = InputField.ContentType.DecimalNumber;
+            field.characterValidation = InputField.CharacterValidation.Decimal;
+            field.customCaretColor = true;
+            field.caretColor = new Color(1f, 1f, 1f, 0.55f);
+            field.selectionColor = new Color(0.2f, 0.28f, 0.36f, 0.35f);
+            field.onValueChanged = new InputField.OnChangeEvent();
+            field.onEndEdit = new InputField.EndEditEvent();
+            SetNumericInputDisplay(field, initialValue, decimals);
             return field;
         }
 

@@ -1,16 +1,35 @@
 # Changelog
 
+## 0.0.7 - 2026-10-21
+
+- Slider row: slider | input | OK, fixed width left-aligned; input updates live while dragging.
+- Switch: plain left/right text (not buttons), fixed track width left-aligned.
+- 滑条行：滑条|数字|确认，固定宽度左对齐，拖动时数字实时变；开关左右为纯文本、轨道固定宽度左对齐。
+
+## 0.0.6 - 2026-10-20
+
+- API v5: slider row = numeric input + slider + OK; `AddSwitch` (米/格 style); radio + text selections; label-left / input-right float rows. Fallback built-in slider if vanilla template missing.
+- API v5：滑条行=数字框+滑条+确认；`AddSwitch` 左右开关；单选圆点+说明；说明左/数字右。无原版滑条时自建。
+
+## 0.0.5 - 2026-10-20
+
+- Numeric inputs: build minimal fields (stateText + dark box) instead of cloning dyson InputField prefabs, reducing blown-out overlays.
+- 数字框改为轻量自建（stateText + 深色底），不再整颗克隆戴森 InputField，减轻过曝。
+
 ## 0.0.4 - 2026-10-20
 
 - Numeric inputs: use dyson editor slider companion field template; darken background and drop heavy outline/placeholder overlap (fixes blown-out values).
+- 数字框改用戴森编辑器样板并压暗背景，去掉描边/占位重叠导致的过曝。
 
 ## 0.0.3 - 2026-10-20
 
 - Fix slider rows: clone vanilla `InputField` templates instead of adding `InputField` on a `Button` (fixes panel build NRE).
+- 滑条行修复：克隆原版 InputField，避免在 Button 上叠 InputField 导致面板构建 NRE。
 
 ## 0.0.2 - 2026-10-20
 
 - API v4: `AddSlider`, `AddFloatField`, `AddSelection` for mod settings pages (slider + numeric input, radio-style buttons).
+- API v4：`AddSlider` / `AddFloatField` / `AddSelection`（滑条+数字、纯数字、多选一）。
 
 ## 0.0.1 - 2026-10-19
 

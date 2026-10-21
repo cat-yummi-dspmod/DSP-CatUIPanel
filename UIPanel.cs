@@ -12,7 +12,7 @@ namespace CatUIPanel
         public const string Guid = Plugin.Guid;
 
         /// <summary>接口版本，只在不兼容地修改公开接口时递增。</summary>
-        public const int ApiVersion = 4;
+        public const int ApiVersion = 5;
 
         internal static readonly List<Page> Pages = new List<Page>();
         internal static int Revision;
@@ -175,7 +175,22 @@ namespace CatUIPanel
             return Add(new FloatFieldItem(entry, min, max, labelZh, labelEn, decimalPlaces));
         }
 
-        /// <summary>多选一：每项一行按钮，选中项高亮。</summary>
+        /// <summary>二选一开关：左右为纯文本（leftText / rightText，如 米 / 格），轨道固定宽度左对齐；绑定 0=左、1=右。</summary>
+        public Page AddSwitch(ConfigEntry<int> entry, string captionZh, string captionEn, string leftTextZh, string leftTextEn, string rightTextZh, string rightTextEn)
+        {
+            if (entry == null)
+            {
+                throw new ArgumentNullException(nameof(entry));
+            }
+            return Add(new SwitchItem(entry, captionZh, captionEn, leftTextZh, leftTextEn, rightTextZh, rightTextEn));
+        }
+
+        public Page AddSwitch(ConfigEntry<int> entry, string leftTextZh, string leftTextEn, string rightTextZh, string rightTextEn)
+        {
+            return AddSwitch(entry, "", "", leftTextZh, leftTextEn, rightTextZh, rightTextEn);
+        }
+
+        /// <summary>多选一：每项一行单选圆点 + 说明文字。</summary>
         public Page AddSelection(ConfigEntry<int> entry, string captionZh, string captionEn, string[] optionZh, string[] optionEn)
         {
             if (entry == null)
@@ -277,6 +292,29 @@ namespace CatUIPanel
             Min = min;
             Max = max;
             DecimalPlaces = decimalPlaces;
+        }
+    }
+
+    internal sealed class SwitchItem : PageItem
+    {
+        public readonly ConfigEntry<int> Entry;
+        public readonly string CaptionZh;
+        public readonly string CaptionEn;
+        public readonly string LeftZh;
+        public readonly string LeftEn;
+        public readonly string RightZh;
+        public readonly string RightEn;
+
+        public SwitchItem(ConfigEntry<int> entry, string captionZh, string captionEn, string leftZh, string leftEn, string rightZh, string rightEn)
+            : base(captionZh, captionEn)
+        {
+            Entry = entry;
+            CaptionZh = captionZh ?? "";
+            CaptionEn = captionEn ?? captionZh ?? "";
+            LeftZh = leftZh ?? "";
+            LeftEn = string.IsNullOrEmpty(leftEn) ? LeftZh : leftEn;
+            RightZh = rightZh ?? "";
+            RightEn = string.IsNullOrEmpty(rightEn) ? RightZh : rightEn;
         }
     }
 
